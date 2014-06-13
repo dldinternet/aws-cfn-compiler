@@ -35,12 +35,16 @@ module Aws
           load @opts[:specification]
 
           desc = @opts[:output] ? File.basename(@opts[:output]).gsub(%r/\.(json|yaml)/, '') : File.basename(__FILE__,'.rb')
-          if @spec and @spec['description']
-            desc = @spec['description']
+          if @spec and @spec['Description']
+            desc = @spec['Description']
+          end
+          vers = '2010-09-09'
+          if @spec and @spec['AWSTemplateFormatVersion']
+            vers = @spec['AWSTemplateFormatVersion']
           end
           compiled = {
-              AWSTemplateFormatVersion: (@opts[:formatversion].nil? ? '2010-09-09' : @opts[:formatversion]),
-              Description:              (@opts[:description].nil? ? desc : @opts[:description]),
+              AWSTemplateFormatVersion: (@opts[:formatversion].nil? ? vers : @opts[:formatversion]),
+              Description:              (@opts[:description].nil?   ? desc : @opts[:description]),
               Parameters:               @items['params'],
               Mappings:                 @items['mappings'],
               Resources:                @items['resources'],
