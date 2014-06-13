@@ -6,7 +6,7 @@ require 'rubygems'
 # SafeYAML::OPTIONS[:default_mode] = :safe
 
 # Borrowing from "whiches" gem ...
-cmd  = 'json_pp'
+cmd  = File.basename(__FILE__, '.rb')
 exes = []
 exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
 ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
