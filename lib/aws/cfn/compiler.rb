@@ -51,15 +51,15 @@ module Aws
               Outputs:                  @items['outputs'],
           }
 
-          output_file = @opts[:output] || 'compiled.json'
-          puts
-          puts "Writing compiled file to #{output_file}..."
-          save(compiled, output_file)
-
           puts
           puts 'Validating compiled file...'
 
           validate(compiled)
+
+          output_file = @opts[:output] || 'compiled.json'
+          puts
+          puts "Writing compiled file to #{output_file}..."
+          save(compiled, output_file)
 
           puts
           puts '*** Compiled Successfully ***'
@@ -122,7 +122,7 @@ module Aws
               raise "Unable to open specification: #{abs}"
             end
           end
-          %w{params mappings resources outputs}.each do |dir|
+          %w{Params Mappings Resources Outputs}.each do |dir|
             load_dir(dir,spec)
           end
         end
@@ -153,9 +153,18 @@ module Aws
 
         def load_dir(dir,spec=nil)
           puts "Loading #{dir}..."
-          @items[dir] = {}
           raise "No such directory: #{@opts[:directory]}" unless File.directory?(@opts[:directory])
-          (Dir[File.join(@opts[:directory], "#{dir}.*")] | Dir[File.join(@opts[:directory], dir, "**", "*")]).collect do |filename|
+          set = []
+          if File.directory?(File.join(@opts[:directory], dir))
+            @items[dir] = {}
+            set = get_file_set(dir)
+          else
+            if File.directory?(File.join(@opts[:directory], dir.downcase))
+              @items[dir] = {}
+              set = get_file_set(dir.downcase)
+            end
+          end
+          set.collect do |filename|
             next unless filename =~ /\.(json|ya?ml)\z/i
             if spec and spec[dir]
               base = File.basename(filename).gsub(%r/\.(rb|yaml)/, '')
@@ -181,6 +190,10 @@ module Aws
               abort!
             end
           end
+        end
+
+        def get_file_set(dir)
+          Dir[File.join(@opts[:directory], "#{dir}.*")] | Dir[File.join(@opts[:directory], dir, "**", "*")]
         end
 
       end
