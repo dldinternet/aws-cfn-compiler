@@ -42,13 +42,14 @@ module Aws
           if @spec and @spec['AWSTemplateFormatVersion']
             vers = @spec['AWSTemplateFormatVersion']
           end
+          # noinspection RubyStringKeysInHashInspection
           compiled = {
-              AWSTemplateFormatVersion: (@opts[:formatversion].nil? ? vers : @opts[:formatversion]),
-              Description:              (@opts[:description].nil?   ? desc : @opts[:description]),
-              Parameters:               @items['params'],
-              Mappings:                 @items['mappings'],
-              Resources:                @items['resources'],
-              Outputs:                  @items['outputs'],
+              'AWSTemplateFormatVersion' => (@opts[:formatversion].nil? ? vers : @opts[:formatversion]),
+              'Description'              => (@opts[:description].nil? ? desc : @opts[:description]),
+              'Parameters'               => @items['Parameters'],
+              'Mappings'                 => @items['Mappings'],
+              'Resources'                => @items['Resources'],
+              'Outputs'                  => @items['Outputs'],
           }
 
           puts
@@ -66,9 +67,9 @@ module Aws
         end
 
         def validate(compiled)
-          raise 'No resources!?' unless compiled[:Resources]
-          raise 'No parameters!?' unless compiled[:Parameters]
-          names = compiled[:Resources].keys + compiled[:Parameters].keys
+          raise 'No Resources!?' unless compiled['Resources']
+          #raise 'No Parameters!?' unless compiled['Parameters']
+          names = compiled['Resources'].keys + (compiled['Parameters'].nil? ? [] : compiled['Parameters'].keys)
           refs = find_refs(compiled).select { |a| !(a =~ /^AWS::/) }
 
           unless (refs-names).empty?
@@ -79,12 +80,32 @@ module Aws
             abort!
           end
           puts '  References validated'
+          names = compiled['Resources'].keys + (compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys)
+          maps  = find_maps(compiled) #.select { |a| !(a =~ /^AWS::/) }
+
+          unless (maps-names).empty?
+            puts '!!! Unknown mappings !!!'
+            (maps-names).each do |name|
+              puts "  #{name}"
+            end
+            abort!
+          end
+          puts '  References validated'
         end
 
         def save(compiled, output_file)
           begin
+            hash = {}
+            compiled.each do |item,value|
+              unless value.nil?
+                if (not value.is_a?(Hash)) or (value.count > 0)
+                  hash[item] = value
+                end
+              end
+            end
+
             File.open output_file, 'w' do |f|
-              f.write JSON.pretty_generate(compiled)
+              f.write JSON.pretty_generate(hash)
             end
             puts '  Compiled file written.'
           rescue
@@ -111,19 +132,19 @@ module Aws
 
               case File.extname(File.basename(abs)).downcase
                 when /json/
-                  spec = JSON.parse(spec)
+                  @spec = JSON.parse(spec)
                 when /yaml/
-                  spec = YAML.load(spec)
+                  @spec = YAML.load(spec)
                 else
                   raise "Unsupported file type for specification: #{spec}"
               end
-              @spec = spec
+              # @spec = spec
             else
               raise "Unable to open specification: #{abs}"
             end
           end
-          %w{Params Mappings Resources Outputs}.each do |dir|
-            load_dir(dir,spec)
+          %w( Mappings Parameters Resources Outputs ).each do |dir|
+            load_dir(dir,@spec)
           end
         end
 
@@ -151,6 +172,21 @@ module Aws
           end
         end
 
+        def find_maps(hash)
+          if hash.is_a? Hash
+            tr = []
+            hash.keys.collect do |key|
+              if 'Fn::FindInMap' == key
+                hash[key].first
+              else
+                find_maps(hash[key])
+              end
+            end.flatten.compact.uniq
+          elsif hash.is_a? Array
+            hash.collect{|a| find_maps(a)}.flatten.compact.uniq
+          end
+        end
+
         def load_dir(dir,spec=nil)
           puts "Loading #{dir}..."
           raise "No such directory: #{@opts[:directory]}" unless File.directory?(@opts[:directory])
@@ -166,8 +202,9 @@ module Aws
           end
           set.collect do |filename|
             next unless filename =~ /\.(json|ya?ml)\z/i
-            if spec and spec[dir]
+            if spec and spec.has_key?(dir)
               base = File.basename(filename).gsub(%r/\.(rb|yaml)/, '')
+              next     if spec[dir].nil? # Edge case ... explicitly want NONE of these!
               next unless spec[dir].include?(base)
               puts "\tUsing #{dir}/#{base}"
             end
@@ -190,10 +227,13 @@ module Aws
               abort!
             end
           end
+          if spec and spec[dir]
+            raise "Suspect that a #{dir} item was missed! \nRequested: #{spec[dir]}\n    Found: #{@items[dir].keys}" unless (@items[dir].keys.count == spec[dir].count)
+          end
         end
 
         def get_file_set(dir)
-          Dir[File.join(@opts[:directory], "#{dir}.*")] | Dir[File.join(@opts[:directory], dir, "**", "*")]
+          Dir[File.join(@opts[:directory], "#{dir}.*")] | Dir[File.join(@opts[:directory], dir.to_s, "**", "*")]
         end
 
       end
