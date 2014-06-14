@@ -125,7 +125,7 @@ module Aws
               # pass
             end
             if File.exists?(abs)
-              raise 'Unsupported specification file type' unless abs =~ /\.(json|ya?ml|jts|yts)\z/i
+              raise "Unsupported specification file type: #{spec}=>#{abs}\n\tSupported types are: json,yaml,jts,yts\n" unless abs =~ /\.(json|ya?ml|jts|yts)\z/i
 
               puts "Loading specification #{abs}..."
               spec = File.read(abs)
