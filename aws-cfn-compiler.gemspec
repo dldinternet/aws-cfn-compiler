@@ -19,9 +19,10 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "awesome_print"
-  spec.add_dependency "slop"
   spec.add_dependency "psych"
   spec.add_dependency "json"
+  spec.add_dependency 'aws-cfn-dsl', '>= 0.0.1', '~> 0.0'
+  spec.add_dependency "slop"
 
   spec.add_development_dependency 'bundler', "~> 1.6"
   spec.add_development_dependency 'rake'
