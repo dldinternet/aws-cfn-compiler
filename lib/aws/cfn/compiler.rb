@@ -46,8 +46,8 @@ module Aws
           compiled = {
               'AWSTemplateFormatVersion' => (@opts[:formatversion].nil? ? vers : @opts[:formatversion]),
               'Description'              => (@opts[:description].nil? ? desc : @opts[:description]),
-              'Parameters'               => @items['Parameters'],
               'Mappings'                 => @items['Mappings'],
+              'Parameters'               => @items['Parameters'],
               'Resources'                => @items['Resources'],
               'Outputs'                  => @items['Outputs'],
           }

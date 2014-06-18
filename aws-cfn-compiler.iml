@@ -15,14 +15,14 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="RVM: ruby-1.9.3-p545 [aws-cfn-compile]" jdkType="RUBY_SDK" />
+    <orderEntry type="jdk" jdkName="RVM: ruby-1.9.3-p547 [aws-cfn-compile]" jdkType="RUBY_SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" scope="PROVIDED" name="awesome_print (v1.2.0, RVM: ruby-1.9.3-p545 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="bundler (v1.6.1, RVM: ruby-1.9.3-p545 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="json (v1.8.1, RVM: ruby-1.9.3-p545 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="psych (v2.0.5, RVM: ruby-1.9.3-p545 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="rake (v10.3.2, RVM: ruby-1.9.3-p545 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="slop (v3.5.0, RVM: ruby-1.9.3-p545 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="awesome_print (v1.2.0, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="bundler (v1.6.2, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="json (v1.8.1, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="psych (v2.0.5, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rake (v10.3.2, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="slop (v3.5.0, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
   </component>
 </module>
 
