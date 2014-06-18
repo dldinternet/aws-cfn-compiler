@@ -105,7 +105,7 @@ module Aws
             end
 
             File.open output_file, 'w' do |f|
-              f.write JSON.pretty_generate(hash)
+              f.write JSON.pretty_generate(hash, { indent: "\t", space: ' '})
             end
             puts '  Compiled file written.'
           rescue
