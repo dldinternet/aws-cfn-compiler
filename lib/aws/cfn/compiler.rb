@@ -68,25 +68,32 @@ module Aws
 
         def validate(compiled)
           raise 'No Resources!?' unless compiled['Resources']
-          #raise 'No Parameters!?' unless compiled['Parameters']
-          names = compiled['Resources'].keys + (compiled['Parameters'].nil? ? [] : compiled['Parameters'].keys)
-          refs = find_refs(compiled).select { |a| !(a =~ /^AWS::/) }
 
-          unless (refs-names).empty?
-            puts '!!! Unknown references !!!'
-            (refs-names).each do |name|
-              puts "  #{name}"
-            end
-            abort!
-          end
-          puts '  References validated'
-          names = compiled['Resources'].keys + (compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys)
+          # Mappings => Resources
           maps  = find_maps(compiled) #.select { |a| !(a =~ /^AWS::/) }
+          rscs  = compiled['Resources'].keys
+          mpgs  = compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys
+          names = rscs+mpgs
 
           unless (maps-names).empty?
             puts '!!! Unknown mappings !!!'
             (maps-names).each do |name|
               puts "  #{name}"
+            end
+            abort!
+          end
+          puts '  Mappings validated'
+
+          # Parameters => Resources => Outputs
+          refs  = find_refs(compiled).select { |a,_| !(a =~ /^AWS::/) }
+          prms  = compiled['Parameters'].keys rescue []
+          # outs  = compiled['Outputs'].keys rescue []
+          names = rscs+prms
+
+          unless (refs.keys-names).empty?
+            puts '!!! Unknown references !!!'
+            (refs.keys-names).each do |name|
+              puts "  #{name} from #{refs[name][0]}:#{refs[name][1]}"
             end
             abort!
           end
@@ -155,21 +162,51 @@ module Aws
           exit
         end
 
-        def find_refs(hash)
+        def find_refs(hash, type='Reference', parent='')
+          h = {}
+          newparent = parent
           if hash.is_a? Hash
-            tr = []
             hash.keys.collect do |key|
+              if %w{Mappings Parameters Resources Outputs}.include? key
+                type = key#.gsub(/s$/, '')
+                newparent = key
+              elsif %w{Mappings Parameters Resources Outputs}.include? parent
+                newparent = key
+              end
               if %w{Ref SourceSecurityGroupName CacheSecurityGroupNames SecurityGroupNames}.include? key
-                hash[key]
+                h = { hash[key] => [type,newparent] }
               elsif 'Fn::GetAtt' == key
-                hash[key].first
+                h = { hash[key].first => [type,newparent] }
               else
-                find_refs(hash[key])
+                a = find_refs(hash[key],type,newparent)
+                h = merge(h, a, *[type,newparent])
               end
             end.flatten.compact.uniq
           elsif hash.is_a? Array
-            hash.collect{|a| find_refs(a)}.flatten.compact.uniq
+            a = hash.map{|i| find_refs(i,type,newparent) }
+            h = merge(h, a, type, *[type,newparent])
           end
+          h
+        end
+
+        def merge(h, a, *type)
+          if a.is_a? Hash
+            if a.size > 0
+              h.merge! a
+            end
+          else
+            a.flatten.compact.uniq.map { |i|
+              if i.is_a? Hash
+                if i.size > 0
+                  h.merge! i
+                  h
+                end
+              else
+                h[i] = type
+              end
+            }
+          end
+          h
         end
 
         def find_maps(hash)
