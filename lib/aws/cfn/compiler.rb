@@ -173,10 +173,13 @@ module Aws
               elsif %w{Mappings Parameters Resources Outputs}.include? parent
                 newparent = key
               end
-              if %w{Ref SourceSecurityGroupName CacheSecurityGroupNames SecurityGroupNames}.include? key
+              if %w{Ref}.include? key
                 h = { hash[key] => [type,newparent] }
               elsif 'Fn::GetAtt' == key
                 h = { hash[key].first => [type,newparent] }
+                # elsif %w{SourceSecurityGroupName CacheSecurityGroupNames SecurityGroupNames}.include? key
+                #   a = find_refs(hash[key],type,newparent)
+                #   h = merge(h, a, *[type,newparent])
               else
                 a = find_refs(hash[key],type,newparent)
                 h = merge(h, a, *[type,newparent])
