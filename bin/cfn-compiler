@@ -2,27 +2,30 @@
 
 require 'rubygems'
 
-# require 'safe_yaml'
-# SafeYAML::OPTIONS[:default_mode] = :safe
-
+path = File.dirname(__FILE__)
+if File.exists?("#{path}/../.gitignore")
+  %w(aws-cfn-decompiler aws-cfn-compiler cloudformation-ruby-dsl).each do |mod|
+    add_path = File.expand_path(File.join(path, "../../#{mod}", "lib"))
+    $:.unshift(add_path)
+  end
+else
 # Borrowing from "whiches" gem ...
-cmd  = File.basename(__FILE__, '.rb')
-exes = []
-exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
-ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
-  exts.each { |ext|
-    exe = File.join(path, "#{cmd}#{ext}")
-    exes << exe if File.executable? exe
-  }
-end
-path = if exes.size > 0
-         File.dirname(exes[0])
-       else
-         File.dirname(__FILE__)
-       end
+  cmd  = File.basename(__FILE__, '.rb')
+  exes = []
+  exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+  ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+    exts.each { |ext|
+      exe = File.join(path, "#{cmd}#{ext}")
+      exes << exe if File.executable? exe
+    }
+  end
+  if exes.size > 0
+    path = File.dirname(exes[0])
+  end
 
+end
 add_path = File.expand_path(File.join(path, "..", "lib"))
 $:.unshift(add_path)
 
 require 'aws/cfn/compiler'
-Aws::Cfn::Compiler::Main.new().run
+Aws::Cfn::Compiler::Main.new.run
