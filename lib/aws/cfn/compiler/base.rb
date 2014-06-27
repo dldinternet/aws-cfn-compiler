@@ -63,6 +63,8 @@ module Aws
         end
 
         def save(compiled, output_file)
+          output_file = File.expand_path(output_file) if @config[:expandedpaths]
+          @logger.step"Writing compiled file to #{output_file}..."
           begin
             hash = {}
             compiled.each do |item,value|

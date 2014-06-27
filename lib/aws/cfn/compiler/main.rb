@@ -54,8 +54,6 @@ module Aws
           validate(compiled)
 
           output_file = @opts[:output] || 'compiled.json'
-          puts
-          @logger.step"Writing compiled file to #{output_file}..."
           save(compiled, output_file)
 
           puts
