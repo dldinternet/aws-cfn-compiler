@@ -13,13 +13,24 @@ module Aws
 
           @opts = Slop.parse(help: true) do
             # command File.basename(__FILE__,'.rb')
-            on :d, :directory=,     'The directory to look in', as: String
+            on :d, :directory=,     'The directory containing template sections', as: String
             on :o, :output=,        'The JSON file to output', as: String
             on :s, :specification=, 'The specification to use when selecting components. A JSON or YAML file or JSON object', as: String
-            on :f, :formatversion=, 'The AWS Template format version. Default 2010-09-09', as: String
-            on :p, :precedence=,    'The precedence of template component types. Default: rb,yaml,yml,json,js', as: String, default: 'rb,ruby,yaml,yml,json,js'
-            on :t, :description=,   "The AWS Template description. Default: output basename or #{File.basename(__FILE__,'.rb')}", as: String
-            on :x, :expandedpaths=, 'Show expanded paths in output', as: String, default: 'off'
+            on :f, :formatversion=, 'The AWS Template format version. ', {  as: String,
+                                                                            optional_argument: true,
+                                                                            default: '2010-09-09' }
+            on :p, :precedence=,    'The precedence of template component types. Default: rb,ruby,yaml,yml,json,js', { as: String,
+                                                                                                                  default: 'rb,ruby,yaml,yml,json,js' }
+            on :t, :description=,   "The AWS Template description. Default: output basename or #{File.basename(__FILE__,'.rb')}", { as: String,
+                                                                                                                                    default: File.basename(__FILE__,'.rb') }
+            on :x, :expandedpaths,  'Show expanded paths in output', { as: String,
+                                                                       optional_argument: true,
+                                                                       default: 'off',
+                                                                       match: %r/0|1|yes|no|on|off|enable|disable|set|unset|true|false|raw/i }
+            on :O, :overwrite,      'Overwrite existing generated source files. (HINT: Think twice ...)', { as: String,
+                                                                                                            optional_argument: true,
+                                                                                                            default: 'off',
+                                                                                                            match: %r/0|1|yes|no|on|off|enable|disable|set|unset|true|false|raw/i }
           end
 
           unless @opts[:directory]
@@ -29,8 +40,9 @@ module Aws
 
           @config[:precedence]    = @opts[:precedence].split(%r',+\s*').reverse
           @config[:expandedpaths] = @opts[:expandedpaths].downcase.match %r'^(1|true|on|yes|enable|set)$'
+          @config[:directory]     = @opts[:directory]
 
-          load @opts[:specification]
+          load_spec @opts[:specification]
 
           desc = @opts[:output] ? File.basename(@opts[:output]).gsub(%r/\.(json|yaml)/, '') : File.basename(__FILE__,'.rb')
           if @spec and @spec['Description']
@@ -53,7 +65,7 @@ module Aws
           validate(compiled)
 
           output_file = @opts[:output] || 'compiled.json'
-          save(output_file,compiled)
+          save_template(output_file,compiled)
 
           @logger.step '*** Compiled Successfully ***'
         end

@@ -9,7 +9,7 @@ require 'aws/cfn/dsl/template'
 module Aws
   module Cfn
     module Compiler
-      class Base < Aws::Cfn::Dsl::Base
+      class Base < ::Aws::Cfn::Dsl::Base
         attr_accessor :items
         attr_accessor :opts
         attr_accessor :spec
@@ -54,7 +54,7 @@ module Aws
           @logger.info '  References validated'
         end
 
-        def save(output_file,compiled)
+        def save_template(output_file,compiled)
           output_file = File.realpath(File.expand_path(output_file)) if @config[:expandedpaths]
           logStep "Writing compiled file to #{output_file}..."
           begin
@@ -77,21 +77,21 @@ module Aws
           end
         end
 
-        def load(spec=nil)
+        def load_spec(spec=nil)
           if spec
             abs = nil
-            [spec, File.join(@opts[:directory],spec)].each do |p|
+            [spec, File.join(@config[:directory],spec)].each do |p|
               begin
                 abs = File.realpath(File.absolute_path(File.expand_path(p)))
                 break if File.exists?(abs)
               rescue => e
-                @logger.error e
+                @logger.debug e
                 # pass
               end
             end
 
-            if File.exists?(abs)
-              logStep "Loading specification #{@opts[:expandedpaths] ? abs : spec}..."
+            if not abs.nil? and File.exists?(abs)
+              logStep "Loading specification #{@config[:expandedpaths] ? abs : spec}..."
               unless abs =~ /\.(json|ya?ml|jts|yts)\z/i
                 abort! "Unsupported specification file type: #{spec}=>#{abs}\n\tSupported types are: json,yaml,jts,yts\n"
               end
@@ -107,9 +107,9 @@ module Aws
                   abort! "Unsupported file type for specification: #{spec}"
               end
             else
-              abort! "Unable to open specification: #{abs}"
+              abort! "Unable to open specification"+ (abs.nil? ? " or {,#{@config[:directory]}/}#{spec} not found" : ": #{abs}")
             end
-            @dsl ||= Aws::Cfn::Dsl::Template.new(@opts[:directory])
+            @dsl ||= Aws::Cfn::Dsl::Template.new(@config[:directory])
             %w( Mappings Parameters Resources Outputs ).each do |dir|
               load_dir(dir,@spec)
             end
@@ -125,7 +125,7 @@ module Aws
           logStep "Loading #{dir}..."
 
           if spec and spec[dir]
-            raise "No such directory: #{@opts[:directory]}" unless File.directory?(@opts[:directory])
+            raise "No such directory: #{@config[:directory]}" unless File.directory?(@config[:directory])
             path = vet_path(dir)
             @items      ||= {}
             @items[dir] ||= {}
@@ -135,7 +135,7 @@ module Aws
 
             item = {}
             spec[dir].each do |rsrc|
-              @logger.info "\tUsing #{dir}/#{rsrc}"
+              @logger.info "\tUsing #{dir}::#{rsrc}"
               set = get[path]
               refp,sub,base,rel = map_resource_reference(rsrc)
               unless refp.nil?
@@ -163,18 +163,7 @@ module Aws
                   next if content.size==0
 
                   if filename =~ /\.(rb|ruby)\z/i
-                    $Aws_Cfn_Compiler ||= {}
-                    $Aws_Cfn_Compiler[dir] ||= {}
-                    $Aws_Cfn_Compiler[dir][base] ||= {
-                        brick_path: @opts[:directory],
-                        template:   @dsl,
-                        logger:     @logger
-                    }
-                    source_file = File.expand_path(filename)
-                    eval "require source_file", binding
-                    unless @dsl.dict[dir.to_sym]
-                      raise "Unable to expand #{filename} for #{dir}/#{base}"
-                    end
+                    compile_rb_file(base, dir, filename)
                     item.merge! @dsl.dict[dir.to_sym]
                   elsif filename =~ /\.js(|on)\z/i
                     item.merge! JSON.parse(content)
@@ -207,6 +196,22 @@ module Aws
             end
           end
 
+        end
+
+        def compile_rb_file(base, dir, filename)
+          Aws::Cfn::Compiler.binding ||= {}
+          Aws::Cfn::Compiler.binding[dir] ||= {}
+          Aws::Cfn::Compiler.binding[dir][base] ||= {
+              brick_path: @config[:directory],
+              template: @dsl,
+              logger: @logger
+          }
+          source_file = File.expand_path(filename)
+          # source      = IO.read(source_file)
+          eval "require source_file", binding
+          unless @dsl.dict[dir.to_sym]
+            abort! "Unable to compile/expand #{filename} for #{dir}/#{base}"
+          end
         end
 
         def find_refs(hash, type='Reference', parent='')
@@ -334,6 +339,9 @@ module Aws
           if rsrc.match %r'^(\.\./.*?)::(.*)$'
             # Relative path stack reference
             path,sub,ref,rel  = map_resource_reference(File.basename(rsrc))
+          elsif rsrc.match %r'^(~/.*?)$'
+            # Relative to HOME
+            path,sub,ref,rel  = map_resource_reference(File.expand_path(rsrc))
           elsif rsrc.match %r'^(\.\./[^:]*?)$'
             # Relative path
             path = File.dirname(rsrc)
@@ -341,26 +349,26 @@ module Aws
             path = File.dirname(path)
             ref  = File.basename(rsrc)
             rel  = true
+          elsif rsrc.match %r'(^/.*?)::(.*)$'
+            # Absolute path
+            _,sub,ref,rel  = map_resource_reference(File.basename(rsrc))
+            path = File.realpath(File.join(File.dirname(rsrc),_))
           elsif rsrc.match %r'(^/.*?[^:]*?)$'
             # Absolute path
             path = File.dirname(rsrc)
             sub  = File.basename(path)
             path = File.dirname(path)
             ref  = File.basename(rsrc)
-          elsif rsrc.match %r'(^/.*?)::(.*)$'
-            # Absolute path
-            path = File.dirname(rsrc)
-            ref  = map_resource_reference(File.basename(rsrc))
           elsif (match = rsrc.match %r'^(.*?)::(.*)$')
             # Inherited stack reference
             ref = match[2]
             # noinspection RubyParenthesesAroundConditionInspection
             if (subm = match[1].match(%r'^(.+?)/(.+)$'))
-              path = File.join(File.dirname(@opts[:directory]),subm[1])
+              path = File.join(File.dirname(@config[:directory]),subm[1])
               sub = subm[2]
             else
               # sub = nil
-              path = File.join(File.dirname(@opts[:directory]),match[1])
+              path = File.join(File.dirname(@config[:directory]),match[1])
             end
           else
             # Otherwise it is what it seems ;)
@@ -371,9 +379,9 @@ module Aws
 
         def vet_path(dir,base=nil,rel=false)
           if rel
-            base = File.realpath(File.expand_path(File.join(@opts[:directory], base)))
+            base = File.realpath(File.expand_path(File.join(@config[:directory], base)))
           else
-            base = @opts[:directory] unless base
+            base = @config[:directory] unless base
           end
           path = nil
           [dir, dir.downcase].each do |d|
