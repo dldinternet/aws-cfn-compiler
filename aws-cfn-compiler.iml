@@ -10,12 +10,62 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="aws-cfn-decompiler" />
     <orderEntry type="module" module-name="aws-cfn-dsl" />
+    <orderEntry type="module-library">
+      <library name="aws-cfn-stacker (v[path], /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/aws-cfn-stacker) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/.idea" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-stacker/.idea" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module" module-name="aws-cfn-yats" />
     <orderEntry type="module" module-name="cloudformation-ruby-dsl" />
+    <orderEntry type="module-library">
+      <library name="dldinternet-mixlib-cli (v0.1.0, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/dldinternet-mixlib-cli) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/bin" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/lib" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/pkg" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/.idea" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/bin" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/lib" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/pkg" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-cli/.idea" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="dldinternet-mixlib-logging (v0.2.0, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/dldinternet-mixlib-logging) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/bin" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/lib" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/pkg" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/.idea" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/bin" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/lib" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/pkg" />
+          <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/.idea" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="library" scope="PROVIDED" name="awesome_print (v1.2.0, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="colorize (v0.7.3, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="detabulator (v0.1.0, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="dldinternet-mixlib-cli (v0.1.0, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
-    <orderEntry type="library" scope="PROVIDED" name="dldinternet-mixlib-logging (v0.1.6, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="inifile (v2.0.2, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="json (v1.8.1, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="little-plugger (v1.1.3, RVM: ruby-1.9.3-p547 [aws-cfn-compile]) [gem]" level="application" />

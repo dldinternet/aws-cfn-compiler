@@ -3,33 +3,25 @@ require 'json'
 require 'ap'
 require 'yaml'
 require 'slop'
+require 'aws/cfn/dsl/base'
 require 'aws/cfn/dsl/template'
 
 module Aws
   module Cfn
     module Compiler
-      class Base
+      class Base < Aws::Cfn::Dsl::Base
         attr_accessor :items
         attr_accessor :opts
         attr_accessor :spec
 
-        require 'dldinternet/mixlib/logging'
-        include DLDInternet::Mixlib::Logging
-
         def initialize
+          super
           @items = {}
-          @config ||= {}
-          @config[:log_opts] = lambda{|mlll| {
-                                      :pattern      => "%#{mlll}l: %m %C\n",
-                                      :date_pattern => '%Y-%m-%d %H:%M:%S',
-                                    }
-                                  }
-          @config[:log_level] = :step
-          @logger = getLogger(@config)
         end
 
         def validate(compiled)
-          raise 'No Resources!?' unless compiled['Resources']
+          abort! 'No Resources!?' unless compiled['Resources']
+          logStep 'Validating compiled file...'
 
           # Mappings => Resources
           maps  = find_maps(compiled) #.select { |a| !(a =~ /^AWS::/) }
@@ -44,9 +36,9 @@ module Aws
             end
             abort!
           end
-          @logger.step '  Mappings validated'
+          @logger.info '  Mappings validated'
 
-          # Parameters => Resources => Out@logger.step
+          # Parameters => Resources => Outputs
           refs  = find_refs(compiled).select { |a,_| !(a =~ /^AWS::/) }
           prms  = compiled['Parameters'].keys rescue []
           # outs  = compiled['Outputs'].keys rescue []
@@ -59,12 +51,12 @@ module Aws
             end
             abort!
           end
-          @logger.step '  References validated'
+          @logger.info '  References validated'
         end
 
-        def save(compiled, output_file)
-          output_file = File.expand_path(output_file) if @config[:expandedpaths]
-          @logger.step"Writing compiled file to #{output_file}..."
+        def save(output_file,compiled)
+          output_file = File.realpath(File.expand_path(output_file)) if @config[:expandedpaths]
+          logStep "Writing compiled file to #{output_file}..."
           begin
             hash = {}
             compiled.each do |item,value|
@@ -78,7 +70,7 @@ module Aws
             File.open output_file, 'w' do |f|
               f.write JSON.pretty_generate(hash, { indent: "\t", space: ' '})
             end
-            @logger.step '  Compiled file written.'
+            @logger.info '  Compiled file written.'
           rescue
             @logger.error "!!! Could not write compiled file: #{$!}"
             abort!
@@ -87,18 +79,23 @@ module Aws
 
         def load(spec=nil)
           if spec
-            begin
-              abs = File.absolute_path(File.expand_path(spec))
-              unless File.exists?(abs)
-                abs = File.absolute_path(File.expand_path(File.join(@opts[:directory],spec)))
+            abs = nil
+            [spec, File.join(@opts[:directory],spec)].each do |p|
+              begin
+                abs = File.realpath(File.absolute_path(File.expand_path(p)))
+                break if File.exists?(abs)
+              rescue => e
+                @logger.error e
+                # pass
               end
-            rescue
-              # pass
             end
-            if File.exists?(abs)
-              raise "Unsupported specification file type: #{spec}=>#{abs}\n\tSupported types are: json,yaml,jts,yts\n" unless abs =~ /\.(json|ya?ml|jts|yts)\z/i
 
-              @logger.step "Loading specification #{abs}..."
+            if File.exists?(abs)
+              logStep "Loading specification #{@opts[:expandedpaths] ? abs : spec}..."
+              unless abs =~ /\.(json|ya?ml|jts|yts)\z/i
+                abort! "Unsupported specification file type: #{spec}=>#{abs}\n\tSupported types are: json,yaml,jts,yts\n"
+              end
+
               spec = File.read(abs)
 
               case File.extname(File.basename(abs)).downcase
@@ -107,11 +104,10 @@ module Aws
                 when /yaml|yts/
                   @spec = YAML.load(spec)
                 else
-                  raise "Unsupported file type for specification: #{spec}"
+                  abort! "Unsupported file type for specification: #{spec}"
               end
-              # @spec = spec
             else
-              raise "Unable to open specification: #{abs}"
+              abort! "Unable to open specification: #{abs}"
             end
             @dsl ||= Aws::Cfn::Dsl::Template.new(@opts[:directory])
             %w( Mappings Parameters Resources Outputs ).each do |dir|
@@ -124,9 +120,93 @@ module Aws
 
         protected
 
-        def abort!
-          @logger.fatal '!!! Aborting !!!'
-          exit
+        # noinspection RubyGlobalVariableNamingConvention
+        def load_dir(dir,spec=nil)
+          logStep "Loading #{dir}..."
+
+          if spec and spec[dir]
+            raise "No such directory: #{@opts[:directory]}" unless File.directory?(@opts[:directory])
+            path = vet_path(dir)
+            @items      ||= {}
+            @items[dir] ||= {}
+            set = {}
+            get = {}
+            get[path] = get_file_set([".*"], path, @config[:precedence])
+
+            item = {}
+            spec[dir].each do |rsrc|
+              @logger.info "\tUsing #{dir}/#{rsrc}"
+              set = get[path]
+              refp,sub,base,rel = map_resource_reference(rsrc)
+              unless refp.nil?
+                path = vet_path(sub ? sub : dir,refp, rel)
+                unless get[path]
+                  get[path] = get_file_set([".*"], path, @config[:precedence])
+                  set = get[path]
+                end
+              end
+              if set[base]
+                if item.has_key?(base)
+                  @logger.error "  !! error: Duplicate item: #{dir}/#{base}"
+                  abort!
+                end
+
+                filename = set[base]
+                unless filename =~ /\.(ru?by?|ya?ml|js(|on))\z/i
+                  @logger.info "Brick not supported/ relevant: #{filename}"
+                  next
+                end
+
+                begin
+                  @logger.debug "  reading #{filename}"
+                  content = File.read(filename)
+                  next if content.size==0
+
+                  if filename =~ /\.(rb|ruby)\z/i
+                    $Aws_Cfn_Compiler ||= {}
+                    $Aws_Cfn_Compiler[dir] ||= {}
+                    $Aws_Cfn_Compiler[dir][base] ||= {
+                        brick_path: @opts[:directory],
+                        template:   @dsl,
+                        logger:     @logger
+                    }
+                    source_file = File.expand_path(filename)
+                    eval "require source_file", binding
+                    unless @dsl.dict[dir.to_sym]
+                      raise "Unable to expand #{filename} for #{dir}/#{base}"
+                    end
+                    item.merge! @dsl.dict[dir.to_sym]
+                  elsif filename =~ /\.js(|on)\z/i
+                    item.merge! JSON.parse(content)
+                  elsif filename =~ /\.ya?ml\z/i
+                    item.merge! YAML.load(content)
+                  else
+                    next
+                  end
+
+                rescue
+                  @logger.error "  !! error: #{$!}"
+                  abort!
+                end
+              else
+                @logger.error "  !! error: #{dir}/#{base} not found!"
+                abort!
+              end
+            end
+            item.keys.each { |key|
+              if @items[dir].has_key?(key)
+                @logger.error "  !! error: Duplicate item: #{dir}/#{key}"
+                abort!
+              end
+            }
+            @items[dir].merge! item
+
+            unless @items[dir].keys.count == spec[dir].count
+              @logger.error "  !! error: Suspect that a #{dir} item was missed! \nRequested: #{spec[dir]}\n    Found: #{@items[dir].keys}"
+              abort!
+            end
+          end
+
         end
 
         def find_refs(hash, type='Reference', parent='')
@@ -196,8 +276,7 @@ module Aws
 
         # --------------------------------------------------------------------------------
         def get_file_set(want, path, exts=[])
-          # Dir[File.join(@opts[:directory], "#{dir}.*")] | Dir[File.join(@opts[:directory], dir.to_s, "**", "*")]
-          raise "Bad call to #{self.class.name}.getPathSet: want == nil" unless want
+          raise "Bad call to #{self.class.name}.get_file_set: want == nil" unless want
           @logger.debug "Look for #{want.ai} in #{[path]} with #{exts} extensions"
           if exts.nil?
             exts = @config[:precedence]
@@ -225,7 +304,7 @@ module Aws
               end
             }
           rescue RegexpError => e
-            raise ChopError.new "The regular expression attempting to match resources in '#{path}' is incorrect! #{e.message}"
+            raise "The regular expression attempting to match resources in '#{path}' is incorrect! #{e.message}"
           end
           @logger.debug "getPathSet set=#{set.ai}"
           res = {}
@@ -236,92 +315,78 @@ module Aws
             h = set[e]
             if h
               h.each{ |n,f|
-                @logger.warn "Ignoring #{File.basename(res[n])}" if res[n]
+                @logger.info "Ignoring #{File.basename(res[n])}" if res[n]
                 res[n] = f
               }
             else
-              @logger.info "'#{e}' set is empty! (No #{path}/*.#{e} files found using precedence #{exts})"
+              @logger.debug "'#{e}' set is empty! (No #{path}/*.#{e} files found using precedence #{exts})"
             end
           }
-          set = res
+          res
         end
 
-        def load_dir(dir,spec=nil)
-          logStep "Loading #{dir}..."
-
-          if spec and spec[dir]
-            raise "No such directory: #{@opts[:directory]}" unless File.directory?(@opts[:directory])
-            set = []
-            if File.directory?(File.join(@opts[:directory], dir))
-              @items[dir] = {}
-              set = get_file_set([".*"], "#{@opts[:directory]}/#{dir}", @config[:precedence])
+        def map_resource_reference(rsrc)
+          path = nil
+          sub  = nil
+          ref  = nil
+          rel  = false
+          # noinspection RubyParenthesesAroundConditionInspection
+          if rsrc.match %r'^(\.\./.*?)::(.*)$'
+            # Relative path stack reference
+            path,sub,ref,rel  = map_resource_reference(File.basename(rsrc))
+          elsif rsrc.match %r'^(\.\./[^:]*?)$'
+            # Relative path
+            path = File.dirname(rsrc)
+            sub  = File.basename(path)
+            path = File.dirname(path)
+            ref  = File.basename(rsrc)
+            rel  = true
+          elsif rsrc.match %r'(^/.*?[^:]*?)$'
+            # Absolute path
+            path = File.dirname(rsrc)
+            sub  = File.basename(path)
+            path = File.dirname(path)
+            ref  = File.basename(rsrc)
+          elsif rsrc.match %r'(^/.*?)::(.*)$'
+            # Absolute path
+            path = File.dirname(rsrc)
+            ref  = map_resource_reference(File.basename(rsrc))
+          elsif (match = rsrc.match %r'^(.*?)::(.*)$')
+            # Inherited stack reference
+            ref = match[2]
+            # noinspection RubyParenthesesAroundConditionInspection
+            if (subm = match[1].match(%r'^(.+?)/(.+)$'))
+              path = File.join(File.dirname(@opts[:directory]),subm[1])
+              sub = subm[2]
             else
-              if File.directory?(File.join(@opts[:directory], dir.downcase))
-                @items[dir] = {}
-                set = get_file_set(['.*'], dir.downcase, @config[:precedence])
-              else
-                @logger.error "  !! error: Cannot load bricks from #{File.join(@opts[:directory], dir)}"
-                abort!
-              end
+              # sub = nil
+              path = File.join(File.dirname(@opts[:directory]),match[1])
             end
+          else
+            # Otherwise it is what it seems ;)
+            ref  = rsrc
+          end
+          [path,sub,ref,rel]
+        end
 
-            item = {}
-            spec[dir].each do |base|
-              @logger.info "\tUsing #{dir}/#{base}"
-              if set[base]
-                if item.has_key?(base)
-                  @logger.error "  !! error: Duplicate item: #{dir}/#{base}"
-                  abort!
-                end
-
-                filename = set[base]
-                unless filename =~ /\.(ru?by?|ya?ml|js(|on))\z/i
-                  @logger.info "Brick not supported/ relevant: #{filename}"
-                  next
-                end
-
-                begin
-                  @logger.step "  reading #{filename}"
-                  content = File.read(filename)
-                  next if content.size==0
-
-                  if filename =~ /\.(rb|ruby)\z/i
-                    eval "@dsl.#{content.gsub(%r'^\s+','')}"
-                    unless @dsl.dict[dir.to_sym]
-                      raise "Unable to expand #{filename} for #{dir}/#{base}"
-                    end
-                    item.merge! @dsl.dict[dir.to_sym]
-                  elsif filename =~ /\.js(|on)\z/i
-                    item.merge! JSON.parse(content)
-                  elsif filename =~ /\.ya?ml\z/i
-                    item.merge! YAML.load(content)
-                  else
-                    next
-                  end
-
-                rescue
-                  @logger.error "  !! error: #{$!}"
-                  abort!
-                end
-              else
-                @logger.error "  !! error: #{dir}/#{base} not found!"
-                abort!
-              end
-            end
-            item.keys.each { |key|
-              if @items[dir].has_key?(key)
-                @logger.error "  !! error: Duplicate item: #{dir}/#{key}"
-                abort!
-              end
-            }
-            @items[dir].merge! item
-
-            unless @items[dir].keys.count == spec[dir].count
-              @logger.error "  !! error: Suspect that a #{dir} item was missed! \nRequested: #{spec[dir]}\n    Found: #{@items[dir].keys}"
-              abort!
+        def vet_path(dir,base=nil,rel=false)
+          if rel
+            base = File.realpath(File.expand_path(File.join(@opts[:directory], base)))
+          else
+            base = @opts[:directory] unless base
+          end
+          path = nil
+          [dir, dir.downcase].each do |d|
+            path = File.join(base, dir)
+            if File.directory?(path)
+              break
             end
           end
-
+          unless File.directory?(path)
+            @logger.error "  !! error: Cannot load bricks from #{path} (started with #{File.join(base, dir)}')"
+            abort!
+          end
+          path
         end
 
       end

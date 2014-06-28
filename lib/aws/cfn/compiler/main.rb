@@ -12,6 +12,7 @@ module Aws
         def run
 
           @opts = Slop.parse(help: true) do
+            # command File.basename(__FILE__,'.rb')
             on :d, :directory=,     'The directory to look in', as: String
             on :o, :output=,        'The JSON file to output', as: String
             on :s, :specification=, 'The specification to use when selecting components. A JSON or YAML file or JSON object', as: String
@@ -49,15 +50,12 @@ module Aws
               'Outputs'                  => @items['Outputs'],
           }
 
-          @logger.step'Validating compiled file...'
-
           validate(compiled)
 
           output_file = @opts[:output] || 'compiled.json'
-          save(compiled, output_file)
+          save(output_file,compiled)
 
-          puts
-          @logger.step'*** Compiled Successfully ***'
+          @logger.step '*** Compiled Successfully ***'
         end
 
       end
