@@ -27,7 +27,23 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module" module-name="aws-cfn-yats" />
+    <orderEntry type="module-library">
+      <library name="aws-cfn-yats (v0.1.8, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/aws-cfn-yats) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/.idea" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-yats/.idea" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="module" module-name="cloudformation-ruby-dsl" />
     <orderEntry type="module-library">
       <library name="dldinternet-mixlib-cli (v0.1.0, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/dldinternet-mixlib-cli) [path][gem]">
