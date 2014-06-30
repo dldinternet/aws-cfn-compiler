@@ -27,6 +27,12 @@ module Aws
             puts "Extra arguments! #{ARGV}"
             exit 1
           end
+
+          unless @opts[:specification]
+            puts @opts
+            abort! "Missing required option --specification"
+          end
+
         end
 
         def set_config_options
