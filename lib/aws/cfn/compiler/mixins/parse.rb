@@ -98,18 +98,19 @@ module Aws
         end
 
         def sym_to_s(hash)
-          if hash.is_a?(Hash)
+          case hash.class.name
+          when /Hash/
             item = {}
             hash.each { |k,v|
               item[k.to_s] = sym_to_s(v)
             }
             item
-          elsif hash.is_a?(Array)
+          when /Array/
             hash.map{|e| sym_to_s(e) }
-          elsif hash.is_a?(String)
+          when /String|TrueClass|FalseClass/
             hash
           else
-            abort! "#{hash} is a #{hash.class.name}"
+            abort! "Internal error: #{hash} is a #{hash.class.name} which our Ruby parsing is not prepared for. Fix #{__FILE__}::sym_to_s"
           end
         end
 
