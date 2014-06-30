@@ -35,22 +35,6 @@ module Aws
           }
         end
 
-        def compile_rb_file(base, dir, filename)
-          Aws::Cfn::Compiler.binding ||= {}
-          Aws::Cfn::Compiler.binding[dir] ||= {}
-          Aws::Cfn::Compiler.binding[dir][base] ||= {
-              brick_path: @config[:directory],
-              template: @dsl,
-              logger: @logger
-          }
-          source_file = File.expand_path(filename)
-          # source      = IO.read(source_file)
-          eval "require source_file", binding
-          unless @dsl.dict[dir.to_sym]
-            abort! "Unable to compile/expand #{filename} for #{dir}/#{base}"
-          end
-        end
-
         def find_refs(hash, type='Reference', parent='')
           h = {}
           newparent = parent

@@ -50,8 +50,7 @@ module Aws
                   next if content.size==0
 
                   if filename =~ /\.(rb|ruby)\z/i
-                    compile_rb_file(base, section, filename)
-                    item.merge! @dsl.dict[section.to_sym]
+                    item.merge! parse_rb_file(base, section, filename)
                   elsif filename =~ /\.js(|on)\z/i
                     item.merge! JSON.parse(content)
                   elsif filename =~ /\.ya?ml\z/i
@@ -79,6 +78,39 @@ module Aws
             end
           end
 
+        end
+
+        def parse_rb_file(base, section, filename)
+          Aws::Cfn::Compiler.binding ||= {}
+          Aws::Cfn::Compiler.binding[section] ||= {}
+          Aws::Cfn::Compiler.binding[section][base] ||= {
+              brick_path: @config[:directory],
+              template: @dsl,
+              logger: @logger
+          }
+          source_file = File.expand_path(filename)
+          # source      = IO.read(source_file)
+          eval "require source_file", binding
+          unless @dsl.dict[section.to_sym]
+            abort! "Unable to compile/expand #{filename} for #{section}/#{base}"
+          end
+          sym_to_s(@dsl.dict[section.to_sym])
+        end
+
+        def sym_to_s(hash)
+          if hash.is_a?(Hash)
+            item = {}
+            hash.each { |k,v|
+              item[k.to_s] = sym_to_s(v)
+            }
+            item
+          elsif hash.is_a?(Array)
+            hash.map{|e| sym_to_s(e) }
+          elsif hash.is_a?(String)
+            hash
+          else
+            abort! "#{hash} is a #{hash.class.name}"
+          end
         end
 
       end
