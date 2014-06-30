@@ -85,8 +85,9 @@ module Aws
           Aws::Cfn::Compiler.binding[section] ||= {}
           Aws::Cfn::Compiler.binding[section][base] ||= {
               brick_path: @config[:directory],
-              template: @dsl,
-              logger: @logger
+              template:   @dsl,
+              logger:     @logger,
+              compiler:   self
           }
           source_file = File.expand_path(filename)
           # source      = IO.read(source_file)
@@ -99,18 +100,20 @@ module Aws
 
         def sym_to_s(hash)
           case hash.class.name
-          when /Hash/
-            item = {}
-            hash.each { |k,v|
-              item[k.to_s] = sym_to_s(v)
-            }
-            item
-          when /Array/
-            hash.map{|e| sym_to_s(e) }
-          when /Fixnum|String|TrueClass|FalseClass/
-            hash
-          else
-            abort! "Internal error: #{hash} is a #{hash.class.name} which our Ruby parsing is not prepared for. Fix #{__FILE__}::sym_to_s"
+            when /Hash/
+              item = {}
+              hash.each { |k,v|
+                item[k.to_s] = sym_to_s(v)
+              }
+              item
+            when /Array/
+              hash.map{|e| sym_to_s(e) }
+            when /Fixnum|String|TrueClass|FalseClass/
+              hash
+            when /Symbol/
+              hash.to_s
+            else
+              abort! "Internal error: #{hash} is a #{hash.class.name} which our Ruby parsing is not prepared for. Fix #{__FILE__}::sym_to_s"
           end
         end
 
