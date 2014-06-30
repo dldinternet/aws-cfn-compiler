@@ -14,15 +14,18 @@ module Aws
           @opts.on :f, :formatversion=, 'The AWS Template format version. ', {as: String,
                                                                               default: '2010-09-09'
           }
-          @opts.on :D, :description=, "The AWS Template description. Default: template name", { as: String }
-          @opts.on :p, :precedence=, 'The precedence of template component types. Default: rb,ruby,yaml,yml,json,js', { as: String,
+          @opts.on :D, :description=,    'The AWS Template description. Default: template name', { as: String }
+          @opts.on :p, :parametersfile=, 'The parameters file for the template', { as: String }
+          @opts.on :i, :stackinifile=,   'The INI file for the stack builder == build.py', { as: String }
+          @opts.on :P, :precedence=,     'The precedence of template component types. Default: rb,ruby,yaml,yml,json,js', { as: String,
                                                                                                                         default: 'rb,ruby,yaml,yml,json,js', }
 
           @opts.parse!
 
           if ARGV.size > 0
             puts @opts
-            abort! "Extra arguments! #{ARGV}"
+            puts "Extra arguments! #{ARGV}"
+            exit 1
           end
         end
 

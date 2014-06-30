@@ -77,6 +77,35 @@ module Aws
             sect = File.basename(sect) unless @config[:expandedpaths]
             save_section(dir, file, @config[:format], sect, hash, '', 'template')
 
+            parameters = []
+            if (@config[:parametersfile] or @config[:stackinifile]) and hash.has_key?('Parameters')
+              hash['Parameters'].each do |par,hsh|
+                # noinspection RubyStringKeysInHashInspection
+                parameters <<   {
+                    'ParameterKey' => par,
+                    'ParameterValue' => hsh.has_key?('Default') ? hsh['Default'] : '',
+                    'UsePreviousValue' => false,
+                }
+              end
+            end
+
+            if @config[:parametersfile] and parameters.size > 0
+              dir  = File.dirname(@config[:parametersfile])
+              file = File.basename(@config[:parametersfile])
+              sect = dir == '.' ? Dir.pwd : dir
+              sect = File.basename(sect) unless @config[:expandedpaths]
+
+              save_section(dir, file, @config[:format], sect, parameters, '', 'parameters')
+            end
+
+            if @config[:stackinifile] and parameters.size > 0
+              dir  = File.dirname(@config[:stackinifile])
+              file = File.basename(@config[:stackinifile])
+              sect = dir == '.' ? Dir.pwd : dir
+              sect = File.basename(sect) unless @config[:expandedpaths]
+
+              save_inifile(dir, file, sect, parameters, 'parameters')
+            end
             @logger.info '  Compiled file written.'
           rescue
             abort! "!!! Could not write compiled file: #{$!}"
