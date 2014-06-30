@@ -107,7 +107,7 @@ module Aws
             item
           when /Array/
             hash.map{|e| sym_to_s(e) }
-          when /String|TrueClass|FalseClass/
+          when /Fixnum|String|TrueClass|FalseClass/
             hash
           else
             abort! "Internal error: #{hash} is a #{hash.class.name} which our Ruby parsing is not prepared for. Fix #{__FILE__}::sym_to_s"
