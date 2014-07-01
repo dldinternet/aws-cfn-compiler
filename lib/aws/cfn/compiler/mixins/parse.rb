@@ -90,8 +90,11 @@ module Aws
               compiler:   self
           }
           source_file = File.expand_path(filename)
-          # source      = IO.read(source_file)
-          eval "require source_file", binding
+          begin
+            eval 'require source_file', binding
+          rescue Exception => e
+            abort! "Cannot compile #{source_file}\n\n" + e.message + "\n\n" + e.backtrace.to_s
+          end
           unless @dsl.dict[section.to_sym]
             abort! "Unable to compile/expand #{filename} for #{section}/#{base}"
           end
