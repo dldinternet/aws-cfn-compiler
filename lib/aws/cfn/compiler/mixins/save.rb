@@ -44,7 +44,7 @@ module Aws
                  end
           logStep "Saving #{brick} to #{filn} "
           # noinspection RubyAssignmentExpressionInConditionalInspection
-          if match = file.match(%r'\.(.*)$')
+          if match = file.match(%r'\.([^\.]*)$')
             if (section != '') and (not formats_compatible?(format, match[1]))
               msg = "The file extension (#{match[1]}) does not match the chosen output format (#{format})!"
               if @config[:force]
