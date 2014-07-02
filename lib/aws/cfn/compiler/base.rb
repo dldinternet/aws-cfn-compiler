@@ -84,7 +84,7 @@ module Aws
                 parameters <<   {
                     'ParameterKey' => par,
                     'ParameterValue' => hsh.has_key?('Default') ? hsh['Default'] : '',
-                    'UsePreviousValue' => false,
+                    # 'UsePreviousValue' => false,
                 }
               end
             end

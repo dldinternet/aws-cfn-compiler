@@ -31,7 +31,7 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="dldinternet-mixlib-logging (v0.2.0, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/dldinternet-mixlib-logging) [path][gem]">
+      <library name="dldinternet-mixlib-logging (v0.3.0, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/dldinternet-mixlib-logging) [path][gem]">
         <CLASSES>
           <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/bin" />
           <root url="file://$MODULE_DIR$/../dldinternet-mixlib-logging/lib" />
