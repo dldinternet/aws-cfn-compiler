@@ -23,8 +23,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'json'
   spec.add_dependency 'slop'
   spec.add_dependency 'inifile'
-  spec.add_dependency 'aws-cfn-dsl', '>= 0.8.0'
-  spec.add_dependency 'dldinternet-mixlib-cli', '>= 0.1.0'
-  spec.add_dependency 'dldinternet-mixlib-logging', '>= 0.3.0'
+  spec.add_dependency 'aws-cfn-dsl', '>= 0.9.0'
+  spec.add_dependency 'dldinternet-mixlib-cli', '>= 0.2.0'
+  spec.add_dependency 'dldinternet-mixlib-logging', '>= 0.4.0'
 
 end
