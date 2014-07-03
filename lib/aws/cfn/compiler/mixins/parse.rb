@@ -15,7 +15,6 @@ module Aws
           logStep "Parsing #{section}..."
 
           if spec and spec[section]
-            abort! "No such directory: #{@config[:directory]} (I am here: #{Dir.pwd})" unless File.directory?(@config[:directory])
             @items          ||= {}
             @items[section] ||= {}
             get  = {}
@@ -28,6 +27,7 @@ module Aws
               else
                 path = vet_path(sub ? sub : section, refp, rel)
               end
+              abort! "No such directory: #{path} (I am here: #{Dir.pwd})" unless File.directory?(path)
               unless get[path]
                 get[path] = get_file_set([".*"], path, @config[:precedence])
               end
@@ -84,10 +84,11 @@ module Aws
           Aws::Cfn::Compiler.binding ||= {}
           Aws::Cfn::Compiler.binding[section] ||= {}
           Aws::Cfn::Compiler.binding[section][base] ||= {
-              brick_path: @config[:directory],
-              template:   @dsl,
-              logger:     @logger,
-              compiler:   self
+              brick_path:       @config[:brick_path],
+              brick_path_list:  @config[:brick_path_list],
+              template:         @dsl,
+              logger:           @logger,
+              compiler:         self
           }
           source_file = File.expand_path(filename)
           begin

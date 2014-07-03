@@ -55,26 +55,40 @@ module Aws
         end
 
         def vet_path(dir,base=nil,rel=false)
-          if rel
-            base = File.realpath(File.expand_path(File.join(@config[:directory], base)))
-          else
-            base = @config[:directory] unless base
-          end
           path = nil
-          [dir, dir.downcase].each do |d|
-            path = File.join(base, dir)
+          @config[:brick_path_list].each do |p|
+            if rel
+              # base = File.realpath(File.expand_path(File.join(@config[:directory], base)))
+              base = File.realpath(File.expand_path(File.join(p, base)))
+            else
+              base = p unless base
+            end
+            [dir, dir.downcase].each do |d|
+              path = File.join(base, dir)
+              if File.directory?(path)
+                break
+              end
+            end
             if File.directory?(path)
               break
             end
           end
+          patn = path
+          unless @config[:expandedpaths]
+            patn = short_path(path)
+          end
+
           unless File.directory?(path)
-            @logger.error "  !! error: Cannot load bricks from #{path} (started with #{File.join(base, dir)}')"
+            @logger.error "  !! error: Cannot load bricks from #{patn} with brick path: \n\t#{@config[:brick_path_list].join("\n\t")} \n(started with #{File.join(base, dir)}')"
             abort!
           end
           path
         end
 
-
+        def short_path(path,n=2)
+          patn = path.split(File::SEPARATOR)[0-n..-1]
+          patn = patn.join(File::SEPARATOR)
+        end
       end
     end
   end

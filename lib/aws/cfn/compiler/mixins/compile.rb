@@ -134,11 +134,22 @@ module Aws
             ref = match[2]
             # noinspection RubyParenthesesAroundConditionInspection
             if (subm = match[1].match(%r'^(.+?)/(.+)$'))
-              path = File.join(File.dirname(@config[:directory]),subm[1])
+              @config[:brick_path_list].each do |p|
+                path = File.join(p,subm[1]) # File.dirname(@config[:directory])
+                unless File.directory?(path)
+                  path = nil
+                end
+              end
               sub = subm[2]
             else
               # sub = nil
-              path = File.join(File.dirname(@config[:directory]),match[1])
+              # path = File.join(File.dirname(@config[:directory]),match[1])
+              @config[:brick_path_list].each do |p|
+                path = File.join(p,match[1]) # File.dirname(@config[:directory])
+                unless File.directory?(path)
+                  path = nil
+                end
+              end
             end
           else
             # Otherwise it is what it seems ;)

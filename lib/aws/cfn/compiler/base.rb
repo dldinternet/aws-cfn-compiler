@@ -116,7 +116,7 @@ module Aws
         def load_spec(spec=nil)
           if spec
             abs = nil
-            [spec, File.join(@config[:directory],spec)].each do |p|
+            [spec, File.join(@config[:brick_path_list],spec)].flatten.each do |p|
               begin
                 abs = File.realpath(File.absolute_path(File.expand_path(p)))
                 break if File.exists?(abs)
@@ -143,7 +143,7 @@ module Aws
                   abort! "Unsupported file type for specification: #{spec}"
               end
             else
-              abort! 'Unable to open specification'+ (abs.nil? ? " or {,#{@config[:directory]}/}#{spec} not found" : ": #{abs}")
+              abort! 'Unable to open specification'+ (abs.nil? ? " or {.,#{@config[:brick_path_list].join(',')}/}#{spec} not found" : ": #{abs}")
             end
           else
             abort! 'No specification provided'

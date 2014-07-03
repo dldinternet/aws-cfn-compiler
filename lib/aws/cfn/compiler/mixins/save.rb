@@ -72,7 +72,7 @@ module Aws
               end
               @logger.info "  saved #{filn}."
             rescue
-              abort! "!!! Could not write file #{path}: #{$!}"
+              abort! "!!! Could not write file #{path}: \nException: #{$!}\nParent directory exists? #{File.directory?(File.dirname(path))}\n"
             end
           else
             @logger.warn "  Did not overwrite #{filn}."

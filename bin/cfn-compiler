@@ -4,7 +4,7 @@ require 'rubygems'
 
 path = File.dirname(__FILE__)
 if File.exists?("#{path}/../.gitignore")
-  %w(aws-cfn-decompiler aws-cfn-compiler aws-cfn-dsl cloudformation-ruby-dsl dldinternet-mixlib-logging).each do |mod|
+  %w(aws-cfn-decompiler aws-cfn-compiler aws-cfn-dsl cloudformation-ruby-dsl dldinternet-mixlib-logging dldinternet-mixlib-cli).each do |mod|
     add_path = File.expand_path(File.join(path, "../../#{mod}", "lib"))
     $:.unshift(add_path)
   end
