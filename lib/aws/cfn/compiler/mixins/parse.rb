@@ -20,7 +20,7 @@ module Aws
             get  = {}
             item = {}
             spec[section].each do |rsrc|
-              @logger.info "\tUsing #{section}::#{rsrc}"
+              @logger.debug "\tUsing #{section}::#{rsrc}"
               refp,sub,base,rel = map_resource_reference(rsrc)
               if refp.nil?
                 path = vet_path(section)

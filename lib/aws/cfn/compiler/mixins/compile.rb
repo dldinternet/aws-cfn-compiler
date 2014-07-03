@@ -3,6 +3,50 @@ module Aws
     module Compiler
       module Compile
 
+        def get_meta(spec,args)
+
+          if spec.is_a?(Hash)
+            if args.is_a?(Array)
+              args.flatten!
+              if args.size > 0
+                a = args.shift
+                get_meta(get_meta(spec, a), args)
+              else
+                spec
+              end
+            elsif args.is_a?(Hash)
+              h = {}
+              args.map { |e, v| h[e] = get_meta(spec, v) }
+              h
+            elsif args.is_a?(Symbol)
+              # noinspection RubyStringKeysInHashInspection
+              case args
+                when :Compiler
+                  {
+                      'Name'    => ::Aws::Cfn::Compiler.name,
+                      'Version' => ::Aws::Cfn::Compiler::VERSION,
+                  }
+                else
+                  get_meta(spec, args.to_s)
+              end
+            elsif args.is_a?(String)
+              if spec[args]
+                spec[args]
+              end
+            else
+              nil
+            end
+          else
+            spec
+          end
+        end
+
+        def meta(*args)
+          if @spec['Meta']
+            get_meta(@spec['Meta'],args)
+          end
+        end
+
         def compile_spec
           desc =  if @config[:description]
                     @config[:description]
@@ -13,6 +57,18 @@ module Aws
                   else
                     'compiled template'
                   end
+
+          begin
+            if desc.match(%r'#\{.+?\}')
+              eval %(desc = "#{desc}")
+            end
+          rescue
+            # noop
+          end
+          # ap meta(:Version)
+          # ap meta(:Compiler,:Name)
+          # ap meta(:Compiler,:Version)
+
           vers =  if @config[:formatversion]
                     @config[:formatversion]
                   else

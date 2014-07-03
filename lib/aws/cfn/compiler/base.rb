@@ -25,9 +25,8 @@ module Aws
 
           # Mappings => Resources
           maps  = find_maps(compiled) #.select { |a| !(a =~ /^AWS::/) }
-          rscs  = compiled['Resources'].keys
           mpgs  = compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys
-          names = rscs+mpgs
+          names = mpgs # rscs+
 
           unless (maps-names).empty?
             @logger.error '!!! Unknown mappings !!!'
@@ -36,20 +35,43 @@ module Aws
             end
             abort!
           end
+          net = (names-maps)
+          unless net.empty?
+            @logger.warn '!!! Unused mappings !!!'
+            net.each do |name|
+              @logger.warn "  #{name}"
+            end
+          end
           @logger.info '  Mappings validated'
 
           # Parameters => Resources => Outputs
           refs  = find_refs(compiled).select { |a,_| !(a =~ /^AWS::/) }
           prms  = compiled['Parameters'].keys rescue []
+          rscs  = compiled['Resources'].keys
           # outs  = compiled['Outputs'].keys rescue []
           names = rscs+prms
 
-          unless (refs.keys-names).empty?
+          net = (refs.keys-names)
+          unless net.empty?
             @logger.error '!!! Unknown references !!!'
-            (refs.keys-names).each do |name|
+            net.each do |name|
               @logger.error "  #{name} from #{refs[name][0]}:#{refs[name][1]}"
             end
             abort!
+          end
+          net = (prms-refs.keys)
+          unless net.empty?
+            @logger.warn '!!! Unused Parameters !!!'
+            net.each do |name|
+              @logger.warn "  #{name}"
+            end
+          end
+          net = (rscs-refs.keys)
+          unless net.empty?
+            @logger.info '!!! Unreported Resources !!!'
+            net.each do |name|
+              @logger.info "  #{name}"
+            end
           end
           @logger.info '  References validated'
         end
