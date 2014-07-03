@@ -1,6 +1,6 @@
-require "aws/cfn/compiler/version"
-require "aws/cfn/compiler/base"
-require "aws/cfn/compiler/main"
+require 'aws/cfn/compiler/version'
+require 'aws/cfn/compiler/base'
+require 'aws/cfn/compiler/main'
 
 module Aws::Cfn::Compiler
   attr_accessor :binding

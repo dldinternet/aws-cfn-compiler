@@ -55,12 +55,13 @@ module Aws
         end
 
         def save_template(output_file,compiled)
+          filn = output_file
           file = output_file
           file = File.expand_path(output_file) if @config[:expandedpaths]
           if File.exists?(file)
             file = File.realpath(file)
           end
-          logStep "Writing compiled file to #{file}..."
+          logStep "Writing compiled file to #{filn}..."
           begin
             hash = {}
             compiled.each do |item,value|

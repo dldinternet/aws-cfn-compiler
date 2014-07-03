@@ -3,7 +3,7 @@ module Aws
     module Compiler
       module Compile
 
-        def compile
+        def compile_spec
           desc =  if @config[:description]
                     @config[:description]
                   elsif @spec and @spec['Description']

@@ -15,7 +15,7 @@ module Aws
 
           parse
 
-          compiled = compile
+          compiled = compile_spec
 
           validate(compiled)
 
