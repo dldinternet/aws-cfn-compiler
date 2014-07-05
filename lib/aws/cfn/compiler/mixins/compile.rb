@@ -26,6 +26,8 @@ module Aws
                       'Name'    => ::Aws::Cfn::Compiler.name,
                       'Version' => ::Aws::Cfn::Compiler::VERSION,
                   }
+                when :DescriptionString
+                  "#{meta(:Description)} - #{meta(:Name)} v#{meta(:Version)}; Parents: #{meta(:DependsOn)} [Compiled with #{meta(:Compiler,:Name)} v#{meta(:Compiler,:Version)}]"
                 else
                   get_meta(spec, args.to_s)
               end
