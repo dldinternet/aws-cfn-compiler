@@ -54,14 +54,19 @@ module Aws
           res
         end
 
-        def vet_path(dir,base=nil,rel=false)
+        def get_brick_path(dir,rsrc,start=nil,rel=false)
+          File.join(get_brick_dirname(dir,rsrc,start,rel),rsrc)
+        end
+
+        def get_brick_dirname(dir,rsrc,start=nil,rel=false)
           path = nil
+          base = nil
           @config[:brick_path_list].each do |p|
             if rel
               # base = File.realpath(File.expand_path(File.join(@config[:directory], base)))
               base = File.realpath(File.expand_path(File.join(p, base)))
             else
-              base = p unless base
+              base = start || p
             end
             [dir, dir.downcase].each do |d|
               path = File.join(base, dir)
@@ -69,13 +74,26 @@ module Aws
                 break
               end
             end
-            if File.directory?(path)
+            fileglob = File.join(path,rsrc)
+            if File.exists?(fileglob)
+              candidates = [fileglob]
+            else
+              fileglob += ".*"
+              candidates = Dir.glob(fileglob).map{ |e|
+                if e.match(%r'\.#{@format_regex}$')
+                  e
+                else
+                  []
+                end
+              }.flatten
+            end
+            if File.directory?(path) and candidates.size > 0
               break
             end
           end
           patn = path
           unless @config[:expandedpaths]
-            patn = short_path(path)
+            patn = short_path(path,3)
           end
 
           unless File.directory?(path)

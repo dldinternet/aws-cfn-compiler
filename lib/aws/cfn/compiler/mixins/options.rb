@@ -9,6 +9,7 @@ module Aws
           setup_options
 
           @opts.on :b, :brick_path=,    'A list of paths to template components (bricks). May also set as the BRICK_PATH environment variable.', as: String
+          @opts.on :S, :stack_path=,    'A list of paths to stacks. May also set as the STACK_PATH environment variable.', as: String
           @opts.on :F, :format=,        'The output format of the components. [JSON|YAML|Ruby]', { as: String, match: @format_regex, default: 'yaml' }
           @opts.on :s, :specification=, 'The specification to use when selecting components. A JSON or YAML file', { as: String
           }
@@ -44,35 +45,70 @@ module Aws
           @optional[:directory]   = true
           setup_config
 
-          if @config[:brick_path]
-            brick_path = @config[:brick_path]
-          elsif ENV['BRICK_PATH']
-            brick_path = ENV['BRICK_PATH']
-          else
-            brick_path = @config[:directory]
-          end
-          if brick_path
-            @config[:brick_path_list] = parseList(brick_path,':','parsePath')
+          set_config_path_option(@config[:stack_path],'STACK_PATH',@config[:directory]  || '.',:stack_path_list,'stack path')
+          set_config_path_option(@config[:brick_path],'BRICK_PATH',@config[:directory],:brick_path_list,'brick path',:stack_path_list)
 
-            mia = []
-            @config[:brick_path_list].each do |path|
-              unless File.directory? path
-                mia << path
+        end
+
+        def set_config_path_option(value,envstr,default,listsym,type,relto=nil)
+          if value
+            path = value
+          elsif ENV[envstr]
+            path = ENV[envstr]
+          else
+            path = default
+          end
+          if path
+            @config[listsym] = parseList(path, ':')
+            newlist = @config[listsym].map{ |r|
+              if relto
+                if r.match(%r'^/')
+                  # Absolute paths not relative to stacks
+                  r
+                else
+                  a = []
+                  @config[relto].each{|b|
+                    # noinspection RubyAssignmentExpressionInConditionalInspection
+                    if File.directory?(p=File.expand_path(File.join(b,r)))
+                      a << File.realpath(p)
+                    end
+                  }
+                  a
+                end
+              else
+                File.expand_path(r)
               end
-            end
+            }
+            @config[listsym] = newlist.flatten.uniq
+
+            mia = find_mia(@config[listsym])
 
             if mia.size > 0
-              hints = []
-              mia.each do |p|
-                hints << hint_paths(p,Dir.pwd)
-              end
-              hints.flatten!
-              abort! "Invalid brick path: #{brick_path}! #{mia.size > 1 ? 'These' : 'This'} path#{mia.size > 1 ? 's' : ''} does not exist or cannot be read!\n #{mia.join("\n\t")}
-Did you mean one of these? #{@config[:expandedpaths] ? "(Above #{Dir.pwd})" : ""}
-\t#{hints.join("\n\t")}\n"
+              report_mia(path, mia, type)
             end
           end
+        end
 
+        def report_mia(path, mia, type)
+          hints = []
+          mia.each do |p|
+            hints << hint_paths(p, Dir.pwd)
+          end
+          hints.flatten!
+          abort! "Invalid #{type}: #{path}!
+              #{mia.size > 1 ? 'These' : 'This'} path#{mia.size > 1 ? 's' : ''} does not exist or cannot be read!\n #{mia.join("\n\t")}
+              Did you mean one of these? #{@config[:expandedpaths] ? "(Above #{Dir.pwd})" : ""}
+                 \t#{hints.join("\n\t")}\n"
+        end
+
+        def find_mia(list)
+          mia = []
+          list.each do |path|
+            unless File.directory? path
+              mia << path
+            end
+          end
+          mia
         end
 
         def hint_paths(p,pwd,n=0,rel='',f=nil)

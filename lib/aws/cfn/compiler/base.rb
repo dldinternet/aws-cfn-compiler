@@ -23,6 +23,36 @@ module Aws
           abort! 'No Resources!?' unless compiled['Resources']
           logStep 'Validating template'
 
+          prms  = compiled['Parameters'].keys rescue []
+          compiled['Parameters'].each do |name,hash|
+            abort! "Parameter #{name} has an invalid compiled block!\n#{hash.ai}" unless hash.is_a?(Hash)
+            if hash['Type']
+              unless %w(String Number CommaDelimitedList).include?(hash['Type'])
+                abort! "Parameter #{name} has an invalid type: #{hash['Type']}"
+              end
+            end
+            if hash['Default']
+              unless hash['Default'].is_a?(String)
+                abort! "Parameter #{name} has an invalid default (Must be string): #{hash['Default']}"
+              end
+            end
+          end
+          @logger.info '  Parameters validated'
+
+          # Mappings => Resources
+          funs  = find_fns(compiled) #.select { |a| !(a =~ /^AWS::/) }
+
+          bad = []
+          funs.each do |fn|
+            unless @valid_functions.include?(fn)
+              bad << fn
+            end
+          end
+          if bad.size > 0
+            abort! "Encountered unsupported function(s) ...\n#{bad.ai}\nSupported functions are:\n#{@valid_functions.ai}"
+          end
+          @logger.info '  Functions validated'
+
           # Mappings => Resources
           maps  = find_maps(compiled) #.select { |a| !(a =~ /^AWS::/) }
           mpgs  = compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys
@@ -46,10 +76,10 @@ module Aws
 
           # Parameters => Resources => Outputs
           refs  = find_refs(compiled).select { |a,_| !(a =~ /^AWS::/) }
-          prms  = compiled['Parameters'].keys rescue []
           rscs  = compiled['Resources'].keys
+          cnds  = compiled['Conditions'].keys rescue []
           # outs  = compiled['Outputs'].keys rescue []
-          names = rscs+prms
+          names = rscs+prms+cnds
 
           net = (refs.keys-names)
           unless net.empty?

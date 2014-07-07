@@ -1,13 +1,57 @@
+require 'rubygems/dependency'
+require 'semverse'
+require 'awesome_print'
+
 module Aws
   module Cfn
     module Compiler
       module Parse
 
         def parse
+          parse_meta(@spec)
           @dsl ||= Aws::Cfn::Dsl::Template.new(@config[:directory])
-          %w( Mappings Parameters Resources Outputs ).each do |section|
+          @all_sections.each do |section|
             parse_section(section,@spec)
           end
+        end
+
+        def parse_meta(spec)
+          begin
+            reqs = meta(:Require)
+            if reqs
+              reqs.each do |name,args|
+                requirement(name,args)
+              end
+            end
+          rescue Exception => e
+            # pass ... abort! e
+          end
+        end
+
+        def requirement(name, *args)
+
+          #options = args.last.is_a?(Hash) ? args.pop.dup : {}
+          constraint = case args.class.name
+                         when /Array/
+                           args.shift
+                         when /Symbol/
+                           args.to_s
+                         when /String/
+                           args
+                         else
+                           raise "Unsupported class #{args.class.name} for #{args.ai}"
+                       end
+          version,constraint = case name
+            when /Compiler/
+              [Aws::Cfn::Compiler::VERSION,constraint]
+            # when /MinVersion/
+            #   [Aws::Cfn::Compiler::VERSION,">= #{constraint}"]
+            else
+              raise "#{name} constraint not supported"
+          end
+
+          raise "The constraint failed: #{name} #{constraint}" unless ::Semverse::Constraint.new(constraint).satisfies?(::Semverse::Version.new(version))
+
         end
 
         # noinspection RubyGlobalVariableNamingConvention
@@ -23,9 +67,9 @@ module Aws
               @logger.debug "\tUsing #{section}::#{rsrc}"
               refp,sub,base,rel = map_resource_reference(rsrc)
               if refp.nil?
-                path = vet_path(section)
+                path = get_brick_dirname(section, rsrc)
               else
-                path = vet_path(sub ? sub : section, refp, rel)
+                path = get_brick_dirname(sub ? sub : section, rsrc, refp, rel)
               end
               abort! "No such directory: #{path} (I am here: #{Dir.pwd})" unless File.directory?(path)
               unless get[path]
@@ -74,7 +118,7 @@ module Aws
             @items[section].merge! item
 
             unless @items[section].keys.count == spec[section].count
-              abort! "  !! error: Suspect that a #{section} item was missed! \nRequested: #{spec[section]}\n    Found: #{@items[section].keys}"
+              abort! "  !! error: Suspect that a #{section} item was missed or not properly named (Brick name and file name mismatch?)! \nRequested: #{spec[section]}\n    Found: #{@items[section].keys}"
             end
           end
 

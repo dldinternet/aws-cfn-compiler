@@ -26,14 +26,33 @@ module Aws
                       'Name'    => ::Aws::Cfn::Compiler.name,
                       'Version' => ::Aws::Cfn::Compiler::VERSION,
                   }
+                when :Specification
+                  File.basename(@config[:specification])
+                when :Template
+                  File.basename(@config[:template])
                 when :DescriptionString
-                  "#{meta(:Description)} - #{meta(:Name)} v#{meta(:Version)}; Parents: #{meta(:DependsOn)} [Compiled with #{meta(:Compiler,:Name)} v#{meta(:Compiler,:Version)}]"
+                  v = nil
+                  begin
+                    parents = "Parents: #{meta(:DependsOn)} "
+                  rescue
+                    parents = ''
+                  end
+                  # noinspection RubyExpressionInStringInspection
+                  template = '#{meta(:Project,:Description)}(#{meta(:Project,:Name)}) - #{meta(:Name)} v#{meta(:Version)}; #{parents} [Compiled with #{meta(:Compiler,:Name)} v#{meta(:Compiler,:Version)}]'
+                  begin
+                    eval %(v = "#{template}" )
+                  rescue Exception => e
+                    raise e.message + "\nIn:\n" + template
+                  end
+                  v
                 else
                   get_meta(spec, args.to_s)
               end
             elsif args.is_a?(String)
               if spec[args]
                 spec[args]
+              else
+                raise "Meta:'#{args}' not set"
               end
             else
               nil
@@ -46,6 +65,8 @@ module Aws
         def meta(*args)
           if @spec['Meta']
             get_meta(@spec['Meta'],args)
+          else
+            raise "Specification contained no metadata while expanding #{args}"
           end
         end
 
@@ -60,17 +81,6 @@ module Aws
                     'compiled template'
                   end
 
-          begin
-            if desc.match(%r'#\{.+?\}')
-              eval %(desc = "#{desc}")
-            end
-          rescue
-            # noop
-          end
-          # ap meta(:Version)
-          # ap meta(:Compiler,:Name)
-          # ap meta(:Compiler,:Version)
-
           vers =  if @config[:formatversion]
                     @config[:formatversion]
                   else
@@ -80,17 +90,63 @@ module Aws
                       '2010-09-09'
                     end
                   end
+
+          desc = compile_value(desc)
+
           # [2014-06-29 Christo] IIRC it is important that the section names be strings instead of symbols ...
           # noinspection RubyStringKeysInHashInspection
           compiled =
-          {
-              'AWSTemplateFormatVersion' => vers,
-              'Description'              => desc,
-              'Mappings'                 => @items['Mappings'],
-              'Parameters'               => @items['Parameters'],
-              'Resources'                => @items['Resources'],
-              'Outputs'                  => @items['Outputs'],
-          }
+              {
+                  'AWSTemplateFormatVersion' => vers,
+                  'Description'              => desc,
+                  'Mappings'                 => @items['Mappings'],
+                  'Parameters'               => @items['Parameters'],
+                  'Conditions'               => @items['Conditions'],
+                  'Resources'                => @items['Resources'],
+                  'Outputs'                  => @items['Outputs'],
+              }
+
+          @all_sections.each do |section|
+            value = compile_value(@items[section])
+            compiled[section] = value if value
+          end
+          compiled
+        end
+
+        def compile_value(expr)
+          begin
+            if expr.is_a?(Hash)
+              val = expr
+              expr.each do |k,v|
+                val[k] = compile_value(v)
+              end
+              val
+            elsif expr.is_a?(Array)
+              expr.map{ |e|
+                compile_value(e)
+              }
+            elsif expr.is_a?(Symbol)
+              expr
+            elsif expr.is_a?(NilClass)
+              expr
+            elsif expr.is_a?(TrueClass)
+              expr
+            elsif expr.is_a?(FalseClass)
+              expr
+            elsif expr.is_a?(Fixnum)
+              expr
+            elsif expr.is_a?(String)
+              val = expr
+              if expr.match(%r'#\{.+?\}')
+                eval %(val = "#{expr}")
+              end
+              val
+            else
+              raise "The expression type #{expr.class.name} cannot be compiled!\n#{expr}"
+            end
+          rescue Exception => e
+            abort! "Specification expression error: #{e.message} on '#{expr}'"
+          end
         end
 
         def find_refs(hash, type='Reference', parent='')
@@ -98,19 +154,25 @@ module Aws
           newparent = parent
           if hash.is_a? Hash
             hash.keys.collect do |key|
-              if %w{Mappings Parameters Resources Outputs}.include? key
+              if @all_sections.include? key
                 type = key#.gsub(/s$/, '')
                 newparent = key
-              elsif %w{Mappings Parameters Resources Outputs}.include? parent
+              elsif @all_sections.include? parent
                 newparent = key
               end
               if %w{Ref}.include? key
                 h = { hash[key] => [type,newparent] }
               elsif 'Fn::GetAtt' == key
                 h = { hash[key].first => [type,newparent] }
-                # elsif %w{SourceSecurityGroupName CacheSecurityGroupNames SecurityGroupNames}.include? key
-                #   a = find_refs(hash[key],type,newparent)
-                #   h = merge(h, a, *[type,newparent])
+              elsif 'DependsOn' == key
+                if hash[key].is_a?(Array)
+                  h = {}
+                  hash[key].map { |dep|
+                    h[dep] = [type,newparent]
+                  }
+                else
+                  h = { hash[key] => [type,newparent] }
+                end
               else
                 a = find_refs(hash[key],type,newparent)
                 h = merge(h, a, *[type,newparent])
@@ -143,9 +205,26 @@ module Aws
           h
         end
 
+        def find_fns(hash)
+          a = []
+          if hash.is_a? Hash
+            hash.each do |key,val|
+              if key.match %r'^Fn::'
+                a << key
+              end
+              a << find_fns(val)
+            end
+          elsif hash.is_a? Array
+            hash.collect{|e|
+              a << find_fns(e)
+            }
+          end
+          r = a.flatten.compact.uniq
+          r
+        end
+
         def find_maps(hash)
           if hash.is_a? Hash
-            tr = []
             hash.keys.collect do |key|
               if 'Fn::FindInMap' == key
                 hash[key].first
@@ -192,20 +271,33 @@ module Aws
             ref = match[2]
             # noinspection RubyParenthesesAroundConditionInspection
             if (subm = match[1].match(%r'^(.+?)/(.+)$'))
+              # Stack referenced with a path
               @config[:brick_path_list].each do |p|
                 path = File.join(p,subm[1]) # File.dirname(@config[:directory])
-                unless File.directory?(path)
+                if File.directory?(path)
+                  break
+                else
                   path = nil
                 end
               end
               sub = subm[2]
             else
-              # sub = nil
-              # path = File.join(File.dirname(@config[:directory]),match[1])
-              @config[:brick_path_list].each do |p|
-                path = File.join(p,match[1]) # File.dirname(@config[:directory])
-                unless File.directory?(path)
-                  path = nil
+              # Stack referenced on stack_path ...
+              pstk = @config[:stack_path_list].map{ |p|
+                if File.basename(p) == match[1]
+                  p
+                else
+                  []
+                end
+              }.flatten.shift
+              if pstk
+                parseList(@config[:brick_path],':').each do |p|
+                  path = File.join(pstk,p) # File.dirname(@config[:directory])
+                  if File.directory?(path)
+                    break
+                  else
+                    path = nil
+                  end
                 end
               end
             end
