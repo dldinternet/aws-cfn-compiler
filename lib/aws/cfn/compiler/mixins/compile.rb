@@ -33,8 +33,22 @@ module Aws
                 when :DescriptionString
                   v = nil
                   begin
-                    parents = "Parents: #{meta(:DependsOn)} "
+                    dependson = meta(:DependsOn)
                   rescue
+                    dependson = ''
+                  end
+                  begin
+                    required = meta(:Require)['Template'].map { |e| e.keys }.flatten
+                  rescue
+                    required = ''
+                  end
+                  if dependson or required
+                    # noinspection RubyHashKeysTypesInspection
+                    parents = {}
+                    dependson.each { |i| parents[i] = true }
+                    required.each { |i| parents[i] = true }
+                    parents = "Parents: [#{parents.keys.join(',')}] "
+                  else
                     parents = ''
                   end
                   # noinspection RubyExpressionInStringInspection

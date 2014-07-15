@@ -45,7 +45,7 @@ module Aws
           @optional[:directory]   = true
           setup_config
 
-          set_config_path_option(@config[:stack_path],'STACK_PATH',@config[:directory]  || '.',:stack_path_list,'stack path')
+          set_config_path_option(@config[:stack_path],'STACK_PATH','.',:stack_path_list,'stack path')
           set_config_path_option(@config[:brick_path],'BRICK_PATH',@config[:directory],:brick_path_list,'brick path',:stack_path_list)
 
         end

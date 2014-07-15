@@ -1,6 +1,8 @@
 require 'rubygems/dependency'
 require 'semverse'
 require 'awesome_print'
+require 'aws/cfn/dsl/version'
+require 'aws/cfn/decompiler/version'
 
 module Aws
   module Cfn
@@ -24,7 +26,7 @@ module Aws
               end
             end
           rescue Exception => e
-            # pass ... abort! e
+            abort! e
           end
         end
 
@@ -44,13 +46,29 @@ module Aws
           version,constraint = case name
             when /Compiler/
               [Aws::Cfn::Compiler::VERSION,constraint]
+            when /^(DeCompiler|Decompiler)/
+              [Aws::Cfn::DeCompiler::VERSION,constraint]
+            when /^(Dsl|DSL)/
+              [Aws::Cfn::Dsl::VERSION,constraint]
+            when /Gems/
+              constraint.map { |h|
+                h.map { |k,v|
+                  ver = eval "#{k}::VERSION"
+                  semver = ::Semverse::Version.new(ver)
+                  raise "The constraint failed: #{k} #{v} (Found #{ver})" unless ::Semverse::Constraint.new(v).satisfies?(semver)
+                }
+              }
+              return
+            when /Template/
+              @logger.warn "Template constraint check supported but not implemented in version #{VERSION}: #{constraint}"
+              return
             # when /MinVersion/
             #   [Aws::Cfn::Compiler::VERSION,">= #{constraint}"]
             else
               raise "#{name} constraint not supported"
           end
 
-          raise "The constraint failed: #{name} #{constraint}" unless ::Semverse::Constraint.new(constraint).satisfies?(::Semverse::Version.new(version))
+          raise "The constraint failed: #{name} #{constraint} (Found #{version})" unless ::Semverse::Constraint.new(constraint).satisfies?(::Semverse::Version.new(version))
 
         end
 

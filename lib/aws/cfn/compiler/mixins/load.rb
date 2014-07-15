@@ -91,6 +91,10 @@ module Aws
               break
             end
           end
+          unless path
+            @logger.error "  !! error: Cannot calculate brick dirname in #{dir} for #{rsrc} with brick path: \n\t#{@config[:brick_path_list].join("\n\t")} \n"
+            abort!
+          end
           patn = path
           unless @config[:expandedpaths]
             patn = short_path(path,3)
@@ -104,8 +108,12 @@ module Aws
         end
 
         def short_path(path,n=2)
-          patn = path.split(File::SEPARATOR)[0-n..-1]
-          patn = patn.join(File::SEPARATOR)
+          if path
+            patn = path.split(File::SEPARATOR)[0-n..-1]
+            patn = patn.join(File::SEPARATOR)
+          else
+            path
+          end
         end
       end
     end
