@@ -86,6 +86,10 @@ module Aws
             if mia.size > 0
               report_mia(path, mia, type)
             end
+
+            if File.directory?((lib = File.join(path, 'lib')))
+              $:.unshift lib
+            end
           end
         end
 

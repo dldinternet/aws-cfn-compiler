@@ -35,12 +35,12 @@ module Aws
                   begin
                     dependson = meta(:DependsOn)
                   rescue
-                    dependson = ''
+                    dependson = []
                   end
                   begin
                     required = meta(:Require)['Template'].map { |e| e.keys }.flatten
                   rescue
-                    required = ''
+                    required = []
                   end
                   if dependson or required
                     # noinspection RubyHashKeysTypesInspection
