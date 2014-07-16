@@ -87,9 +87,11 @@ module Aws
               report_mia(path, mia, type)
             end
 
-            if File.directory?((lib = File.join(path, 'lib')))
-              $:.unshift lib
-            end
+            @config[listsym].each { |p|
+              if File.directory?((lib = File.join(p, 'lib')))
+                $:.unshift lib
+              end
+            }
           end
         end
 
