@@ -38,10 +38,18 @@ module Aws
                     dependson = []
                   end
                   begin
-                    required = meta(:Require)['Template'].map { |e| e.keys }.flatten
+                    required = meta(:Require)['Template']
+                    ok = true
+                    required.map { |e| ok = (ok and e.is_a?(Hash)) }
+                    if ok
+                      required = required.map { |e| e.keys }.flatten
+                    else
+                      required = nil
+                    end
                   rescue
                     required = []
                   end
+                  raise "Bad Require:Template: meta-data ...\n#{meta(:Require).ai}. Must resolve to a Hash!\nFor example:\nRequire:\n  Template:\n  - my-template: '>= 0.0.0'" unless required
                   if dependson or required
                     # noinspection RubyHashKeysTypesInspection
                     parents = {}
