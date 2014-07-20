@@ -17,6 +17,11 @@ module Aws
         def initialize
           super
           @items = {}
+          @dynamic_items = {}
+        end
+
+        def dynamic_item(section,resource,hash)
+          @dynamic_items[section][resource] = hash
         end
 
         def validate(compiled)
@@ -24,20 +29,22 @@ module Aws
           logStep 'Validating template'
 
           prms  = compiled['Parameters'].keys rescue []
-          compiled['Parameters'].each do |name,hash|
-            abort! "Parameter #{name} has an invalid compiled block!\n#{hash.ai}" unless hash.is_a?(Hash)
-            if hash['Type']
-              unless %w(String Number CommaDelimitedList).include?(hash['Type'])
-                abort! "Parameter #{name} has an invalid type: #{hash['Type']}"
+          if compiled['Parameters']
+            compiled['Parameters'].each do |name,hash|
+              abort! "Parameter #{name} has an invalid compiled block!\n#{hash.ai}" unless hash.is_a?(Hash)
+              if hash['Type']
+                unless %w(String Number CommaDelimitedList).include?(hash['Type'])
+                  abort! "Parameter #{name} has an invalid type: #{hash['Type']}"
+                end
+              end
+              if hash['Default']
+                unless hash['Default'].is_a?(String)
+                  abort! "Parameter #{name} has an invalid default (Must be string): #{hash['Default']}"
+                end
               end
             end
-            if hash['Default']
-              unless hash['Default'].is_a?(String)
-                abort! "Parameter #{name} has an invalid default (Must be string): #{hash['Default']}"
-              end
-            end
+            @logger.info '  Parameters validated'
           end
-          @logger.info '  Parameters validated'
 
           # Mappings => Resources
           funs  = find_fns(compiled) #.select { |a| !(a =~ /^AWS::/) }
@@ -96,9 +103,9 @@ module Aws
               @logger.warn "  #{name}"
             end
           end
-          net = (rscs-refs.keys)
+          net = (rscs.sort-refs.keys.sort)
           unless net.empty?
-            @logger.info '!!! Unreported Resources !!!'
+            @logger.info '!!! Unreferenced Resources !!!'
             net.each do |name|
               @logger.info "  #{name}"
             end
@@ -190,7 +197,12 @@ module Aws
                 when /json|jts/
                   @spec = JSON.parse(spec)
                 when /yaml|yts/
-                  @spec = YAML.load(spec)
+                  begin
+                    @spec = YAML.load(spec)
+                  rescue Psych::SyntaxError => e
+                    i = 0
+                    abort! "Error in the template specification: #{e.message}\n#{spec.split(/\n/).map{|l| "#{i+=1}: #{l}"}.join("\n")}"
+                  end
                 else
                   abort! "Unsupported file type for specification: #{spec}"
               end

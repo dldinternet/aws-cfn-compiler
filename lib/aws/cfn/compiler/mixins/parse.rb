@@ -79,6 +79,7 @@ module Aws
           if spec and spec[section]
             @items          ||= {}
             @items[section] ||= {}
+            @dynamic_items[section] ||= {}
             get  = {}
             item = {}
             spec[section].each do |rsrc|
@@ -125,7 +126,12 @@ module Aws
                   abort! "  !! error: #{$!}"
                 end
               else
-                abort! "  !! error: #{section}/#{base} not found!"
+                pm = []
+                set.map { |r,f|
+                  b = File.basename(f).gsub( %r(\..*?$), '' )
+                  pm << b if b.downcase == rsrc.downcase
+                }
+                abort! "  !! error: #{section}/#{base} not found! Possible matches: #{pm}"
               end
             end
             item.keys.each { |key|
@@ -135,7 +141,7 @@ module Aws
             }
             @items[section].merge! item
 
-            unless @items[section].keys.count == spec[section].count
+            unless @items[section].keys.count == (spec[section].count + @dynamic_items[section].keys.count)
               abort! "  !! error: Suspect that a #{section} item was missed or not properly named (Brick name and file name mismatch?)! \nRequested: #{spec[section]}\n    Found: #{@items[section].keys}"
             end
           end
