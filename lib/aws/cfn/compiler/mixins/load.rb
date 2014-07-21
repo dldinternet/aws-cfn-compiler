@@ -101,7 +101,7 @@ module Aws
           end
 
           unless File.directory?(path)
-            @logger.error "  !! error: Cannot load bricks from #{patn} with brick path: \n\t#{@config[:brick_path_list].join("\n\t")} \n(started with #{File.join(base, dir)}')"
+            @logger.error "  !! error: Cannot load #{dir}/#{rsrc} with brick path: \n\t#{@config[:brick_path_list].join("\n\t")} \n(started with #{File.join(base, dir)}')"
             abort!
           end
           path
