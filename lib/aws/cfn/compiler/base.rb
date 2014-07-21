@@ -28,6 +28,7 @@ module Aws
           abort! 'No Resources!?' unless compiled['Resources']
           logStep 'Validating template'
 
+         # --- Parameters ----------------------------------------------------------------------------------------------
           prms  = compiled['Parameters'].keys rescue []
           if compiled['Parameters']
             compiled['Parameters'].each do |name,hash|
@@ -46,7 +47,7 @@ module Aws
             @logger.info '  Parameters validated'
           end
 
-          # Mappings => Resources
+          # --- functions ----------------------------------------------------------------------------------------------
           funs  = find_fns(compiled) #.select { |a| !(a =~ /^AWS::/) }
 
           bad = []
@@ -60,19 +61,23 @@ module Aws
           end
           @logger.info '  Functions validated'
 
-          # Mappings => Resources
-          maps  = find_maps(compiled) #.select { |a| !(a =~ /^AWS::/) }
+          # --- Mappings ----------------------------------------------------------------------------------------------
+          mappings  = find_maps(compiled)
           mpgs  = compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys
           names = mpgs # rscs+
 
-          unless (maps-names).empty?
+          maps = {}
+          mappings.each{|m| maps[m[:mapping]] = m[:source] }
+          mapnames = maps.keys
+          net = (mapnames-names)
+          unless net.empty?
             @logger.error '!!! Unknown mappings !!!'
-            (maps-names).each do |name|
-              @logger.error "  #{name}"
+            net.each do |name|
+              @logger.error "  #{name} (Location in template: #{maps[name].join('/')})"
             end
             abort!
           end
-          net = (names-maps)
+          net = (names-mapnames)
           unless net.empty?
             @logger.warn '!!! Unused mappings !!!'
             net.each do |name|
@@ -81,11 +86,32 @@ module Aws
           end
           @logger.info '  Mappings validated'
 
+          # --- Conditions ----------------------------------------------------------------------------------------------
+          cond  = find_conditions(compiled)
+          cnds  = compiled['Conditions'].keys rescue []
+          names = cnds
+
+          net = (cond-names)
+          unless net.empty?
+            @logger.error '!!! Unknown conditions !!!'
+            net.each do |name|
+              @logger.error "  #{name}"
+            end
+            abort!
+          end
+          net = (names-cond)
+          unless net.empty?
+            @logger.warn '!!! Unused conditions !!!'
+            net.each do |name|
+              @logger.warn "  #{name}"
+            end
+          end
+          @logger.info '  Conditions validated'
+
+          # --- References ----------------------------------------------------------------------------------------------
           # Parameters => Resources => Outputs
           refs  = find_refs(compiled).select { |a,_| !(a =~ /^AWS::/) }
           rscs  = compiled['Resources'].keys
-          cnds  = compiled['Conditions'].keys rescue []
-          # outs  = compiled['Outputs'].keys rescue []
           names = rscs+prms+cnds
 
           net = (refs.keys-names)

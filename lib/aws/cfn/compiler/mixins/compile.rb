@@ -245,17 +245,36 @@ module Aws
           r
         end
 
-        def find_maps(hash)
+        def find_maps(hash,source=[])
           if hash.is_a? Hash
             hash.keys.collect do |key|
               if 'Fn::FindInMap' == key
-                hash[key].first
+                { mapping: hash[key].first, source: source }
               else
-                find_maps(hash[key])
+                find_maps(hash[key], [ source, key ].flatten!)
               end
             end.flatten.compact.uniq
           elsif hash.is_a? Array
-            hash.collect{|a| find_maps(a)}.flatten.compact.uniq
+            hash.collect{|a|
+              find_maps(a,source)}.flatten.compact.uniq
+          end
+        end
+
+        def find_conditions(hash)
+          if hash.is_a? Hash
+            hash.keys.collect do |key|
+              if 'Condition' == key
+                if hash[key].is_a?(Array)
+                  hash[key].first
+                else
+                  hash[key]
+                end
+              else
+                find_conditions(hash[key])
+              end
+            end.flatten.compact.uniq
+          elsif hash.is_a? Array
+            hash.collect{|a| find_conditions(a)}.flatten.compact.uniq
           end
         end
 
