@@ -33,7 +33,7 @@ module Aws
                 when :DescriptionString
                   v = nil
                   begin
-                    dependson = meta(:DependsOn)
+                    dependson = meta(:DependsOn) || []
                   rescue
                     dependson = []
                   end
@@ -44,19 +44,23 @@ module Aws
                     if ok
                       required = required.map { |e| e.keys }.flatten
                     else
-                      required = nil
+                      required = {}
                     end
                   rescue
-                    required = []
+                    required = {}
                   end
                   raise "Bad Require:Template: meta-data ...\n#{meta(:Require).ai}. Must resolve to a Hash!\nFor example:\nRequire:\n  Template:\n  - my-template: '>= 0.0.0'" unless required
-                  if dependson or required
-                    # noinspection RubyHashKeysTypesInspection
-                    parents = {}
-                    dependson.each { |i| parents[i] = true }
-                    required.each { |i| parents[i] = true }
-                    parents = "Parents: [#{parents.keys.join(',')}] "
-                  else
+                  begin
+                    # if dependson or required
+                      # noinspection RubyHashKeysTypesInspection
+                      parents = {}
+                      dependson.each { |i| parents[i] = true }
+                      required.each { |i| parents[i] = true }
+                      parents = "Parents: [#{parents.keys.join(',')}] "
+                    # else
+                    #   parents = ''
+                    # end
+                  rescue
                     parents = ''
                   end
                   # noinspection RubyExpressionInStringInspection
@@ -74,7 +78,7 @@ module Aws
               if spec[args]
                 spec[args]
               else
-                raise "Meta:'#{args}' not set"
+                nil # raise "Meta:'#{args}' not set"
               end
             else
               nil
