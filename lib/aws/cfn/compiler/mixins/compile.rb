@@ -246,14 +246,13 @@ module Aws
             }
           end
           r = a.flatten.compact.uniq
-          r
         end
 
         def find_maps(hash,source=[])
           if hash.is_a? Hash
             hash.keys.collect do |key|
               if 'Fn::FindInMap' == key
-                { mapping: hash[key].first, source: source }
+                { :mapping => hash[key].first, :source => source }
               else
                 find_maps(hash[key], [ source, key ].flatten!)
               end
