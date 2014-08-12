@@ -122,6 +122,15 @@ module Aws
                     next
                   end
 
+                  unless item.has_key?(base)
+                    filn = if @config[:expandedpaths]
+                             filename
+                           else
+                             short_path(filename,2)
+                           end
+                    @logger.error "  !! error: Brick in #{filn} does not define #{section}/#{base}!?\nIt defines these: #{item.keys}"
+                    abort!
+                  end
                 rescue
                   abort! "  !! error: #{$!}"
                 end
