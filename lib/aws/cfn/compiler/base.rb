@@ -21,6 +21,9 @@ module Aws
         end
 
         def dynamic_item(section,resource,hash)
+          unless @dynamic_items.has_key?(section)
+            @dynamic_items[section] ||= {}
+          end
           @dynamic_items[section][resource] = hash
         end
 

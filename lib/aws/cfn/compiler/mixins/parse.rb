@@ -113,7 +113,26 @@ module Aws
                   next if content.size==0
 
                   if filename =~ /\.(rb|ruby)\z/i
-                    item.merge! parse_rb_file(base, section, filename)
+                    dict = parse_rb_file(base, section, filename)
+                    # Ruby bricks can now define resources across section boundaries!
+                    dict.each do |sect, itmh|
+                      # Simply merge all the items in the section we are working in as before
+                      if sect == section
+                        item.merge! itmh
+                      else
+                        # And for items in other sections define the section or check for dups
+                        if @items.has_key?(sect)
+                          itmh.each { |key|
+                            if @items[sect].has_key?(key)
+                              abort! "  !! error: Duplicate item: #{sect}/#{key}"
+                            end
+                          }
+                        else
+                          @items[sect] ||= {}
+                        end
+                        @items[sect].merge! itmh
+                      end
+                    end
                   elsif filename =~ /\.js(|on)\z/i
                     item.merge! JSON.parse(content)
                   elsif filename =~ /\.ya?ml\z/i
@@ -151,21 +170,28 @@ module Aws
             @items[section].merge! item
 
             unless @items[section].keys.count == (spec[section].count + @dynamic_items[section].keys.count)
-              abort! "  !! error: Suspect that a #{section} item was missed or not properly named (Brick name and file name mismatch?)! \nRequested: #{spec[section]}\n    Found: #{@items[section].keys}"
+              @logger.error "#{section} section check failed! \nRequested: #{spec[section]}\n    Found: #{@items[section].keys}\n  Dynamic: #{@dynamic_items[section].keys}\n"+
+                            "  !! Suspect that a #{section} item was missed, duplicated or not properly named (Brick name and file name mismatch?)!"
+              @dynamic_items[section].each do |k,_|
+                if @items.has_key?(k)
+                  @logger.error "Dynamic #{section}/#{k} duplicates a static resource!"
+                end
+              end
+              abort! 'Cannot continue'
             end
           end
 
         end
 
         def parse_rb_file(base, section, filename)
-          Aws::Cfn::Compiler.binding ||= {}
-          Aws::Cfn::Compiler.binding[section] ||= {}
+          Aws::Cfn::Compiler.binding                ||= {}
+          Aws::Cfn::Compiler.binding[section]       ||= {}
           Aws::Cfn::Compiler.binding[section][base] ||= {
-              brick_path:       @config[:brick_path],
-              brick_path_list:  @config[:brick_path_list],
-              template:         @dsl,
-              logger:           @logger,
-              compiler:         self
+              :brick_path      => @config[:brick_path],
+              :brick_path_list => @config[:brick_path_list],
+              :template        => @dsl,
+              :logger          => @logger,
+              :compiler        => self
           }
           source_file = File.expand_path(filename)
           begin
@@ -176,7 +202,7 @@ module Aws
           unless @dsl.dict[section.to_sym]
             abort! "Unable to compile/expand #{filename} for #{section}/#{base}"
           end
-          sym_to_s(@dsl.dict[section.to_sym])
+          sym_to_s(@dsl.dict)
         end
 
         def sym_to_s(hash)
