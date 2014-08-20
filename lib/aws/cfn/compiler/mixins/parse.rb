@@ -81,8 +81,9 @@ module Aws
             @items[section] ||= {}
             @dynamic_items[section] ||= {}
             get  = {}
-            item = {}
             spec[section].each do |rsrc|
+              item = {}
+              item[section] ||= {}
               @logger.debug "\tUsing #{section}::#{rsrc}"
               refp,sub,base,rel = map_resource_reference(rsrc)
               if refp.nil?
@@ -96,7 +97,7 @@ module Aws
               end
               set = get[path]
               if set[base]
-                if item.has_key?(base)
+                if item[section].has_key?(base)
                   @logger.error "  !! error: Duplicate item: #{section}/#{base}"
                   abort!
                 end
@@ -113,46 +114,40 @@ module Aws
                   next if content.size==0
 
                   if filename =~ /\.(rb|ruby)\z/i
-                    dict = parse_rb_file(base, section, filename)
                     # Ruby bricks can now define resources across section boundaries!
-                    dict.each do |sect, itmh|
-                      # Simply merge all the items in the section we are working in as before
-                      if sect == section
-                        item.merge! itmh
-                      else
-                        # And for items in other sections define the section or check for dups
-                        if @items.has_key?(sect)
-                          itmh.each { |key|
-                            if @items[sect].has_key?(key)
-                              abort! "  !! error: Duplicate item: #{sect}/#{key}"
-                            end
-                          }
-                        else
-                          @items[sect] ||= {}
-                        end
-                        @items[sect].merge! itmh
-                      end
-                    end
+                    item = parse_rb_file(base, section, filename)
                   elsif filename =~ /\.js(|on)\z/i
-                    item.merge! JSON.parse(content)
+                    item[section].merge! JSON.parse(content)
                   elsif filename =~ /\.ya?ml\z/i
-                    item.merge! YAML.load(content)
+                    item[section].merge! YAML.load(content)
                   else
                     next
                   end
 
-                  unless item.has_key?(base)
+                  unless item[section].has_key?(base)
                     filn = if @config[:expandedpaths]
                              filename
                            else
                              short_path(filename,2)
                            end
-                    @logger.error "  !! error: Brick in #{filn} does not define #{section}/#{base}!?\nIt defines these: #{item.keys}"
+                    @logger.error "  !! error: Brick in #{filn} does not define #{section}/#{base}!?\nIt defines these: #{item[section].keys}"
                     abort!
                   end
                 rescue
                   abort! "  !! error: #{$!}"
                 end
+                item.each { |sect,hash|
+                  hash.keys.each do |key|
+                    if @items.has_key?(sect)
+                      if @items[sect].has_key?(key)
+                        abort! "  !! error: Duplicate item: #{sect}/#{key}"
+                      end
+                    else
+                      @items[sect] ||= {}
+                    end
+                  end
+                  @items[sect].merge! hash
+                }
               else
                 pm = []
                 set.map { |r,f|
@@ -162,12 +157,6 @@ module Aws
                 abort! "  !! error: #{section}/#{base} not found! Possible matches: #{pm}"
               end
             end
-            item.keys.each { |key|
-              if @items[section].has_key?(key)
-                abort! "  !! error: Duplicate item: #{section}/#{key}"
-              end
-            }
-            @items[section].merge! item
 
             unless @items[section].keys.count == (spec[section].count + @dynamic_items[section].keys.count)
               @logger.error "#{section} section check failed! \nRequested: #{spec[section]}\n    Found: #{@items[section].keys}\n  Dynamic: #{@dynamic_items[section].keys}\n"+
@@ -200,9 +189,11 @@ module Aws
             abort! "Cannot compile #{source_file}\n\n" + e.message + "\n\n" + e.backtrace.to_s
           end
           unless @dsl.dict[section.to_sym]
-            abort! "Unable to compile/expand #{filename} for #{section}/#{base}"
+            abort! "Unable to compile/expand #{filename} for #{section}/#{base}.\n(No #{section} were created?!)"
           end
-          sym_to_s(@dsl.dict)
+          dict = sym_to_s(@dsl.dict)
+          @dsl = Aws::Cfn::Dsl::Template.new(@config[:directory])
+          dict
         end
 
         def sym_to_s(hash)

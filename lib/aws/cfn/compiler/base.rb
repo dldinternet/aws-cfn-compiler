@@ -21,6 +21,7 @@ module Aws
         end
 
         def dynamic_item(section,resource,hash)
+          abort! "Invalid section '#{section}'\nValid sections are: #{@all_sections.join(',')}" unless @all_sections.include?(section)
           unless @dynamic_items.has_key?(section)
             @dynamic_items[section] ||= {}
           end
