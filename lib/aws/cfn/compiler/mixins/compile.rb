@@ -187,17 +187,20 @@ module Aws
                 newparent = key
               end
               if %w{Ref}.include? key
-                h = { hash[key] => [type,newparent] }
+                # h = { hash[key] => [type,newparent] }
+                h[hash[key]] = [type,newparent]
               elsif 'Fn::GetAtt' == key
-                h = { hash[key].first => [type,newparent] }
+                # h = { hash[key].first => [type,newparent] }
+                h[hash[key].first] = [type,newparent]
               elsif 'DependsOn' == key
                 if hash[key].is_a?(Array)
-                  h = {}
+                  # h = {}
                   hash[key].map { |dep|
                     h[dep] = [type,newparent]
                   }
                 else
-                  h = { hash[key] => [type,newparent] }
+                  # h = { hash[key] => [type,newparent] }
+                  h[hash[key]] = [type,newparent]
                 end
               else
                 a = find_refs(hash[key],type,newparent)
