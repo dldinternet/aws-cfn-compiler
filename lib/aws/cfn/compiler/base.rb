@@ -18,14 +18,27 @@ module Aws
           super
           @items = {}
           @dynamic_items = {}
+          @dynamic_references = {}
+          @all_sections.each do |section|
+            @dynamic_items[section]      ||= {}
+            @dynamic_references[section] ||= []
+          end
         end
 
         def dynamic_item(section,resource,hash)
           abort! "Invalid section '#{section}'\nValid sections are: #{@all_sections.join(',')}" unless @all_sections.include?(section)
-          unless @dynamic_items.has_key?(section)
-            @dynamic_items[section] ||= {}
-          end
           @dynamic_items[section][resource] = hash
+        end
+
+        def dynamic_reference(section,resource)
+          abort! "Invalid section '#{section}'\nValid sections are: #{@all_sections.join(',')}" unless @all_sections.include?(section)
+          @dynamic_references[section] << resource
+        end
+
+        def _uniq_names(arr)
+          names = {}
+          arr.map { |n| names[n] = nil }
+          names.keys
         end
 
         def validate(compiled)
@@ -68,11 +81,11 @@ module Aws
           # --- Mappings ----------------------------------------------------------------------------------------------
           mappings  = find_maps(compiled)
           mpgs  = compiled['Mappings'].nil? ? [] : compiled['Mappings'].keys
-          names = mpgs # rscs+
+          names = _uniq_names(mpgs+@dynamic_items['Mappings'].keys)
 
           maps = {}
           mappings.each{|m| maps[m[:mapping]] = m[:source] }
-          mapnames = maps.keys
+          mapnames = maps.keys+@dynamic_references['Mappings']
           net = (mapnames-names)
           unless net.empty?
             @logger.error '!!! Unknown mappings !!!'
@@ -91,9 +104,9 @@ module Aws
           @logger.info '  Mappings validated'
 
           # --- Conditions ----------------------------------------------------------------------------------------------
-          cond  = find_conditions(compiled)
+          cond  = find_conditions(compiled)+@dynamic_references['Conditions']
           cnds  = compiled['Conditions'].keys rescue []
-          names = cnds
+          names = _uniq_names(cnds+@dynamic_items['Conditions'].keys)
 
           net = (cond-names)
           unless net.empty?
@@ -116,9 +129,9 @@ module Aws
           # Parameters => Resources => Outputs
           refs  = find_refs(compiled).select { |a,_| !(a =~ /^AWS::/) }
           rscs  = compiled['Resources'].keys
-          names = rscs+prms+cnds
+          names = _uniq_names((mpgs+rscs+prms+cnds)+@dynamic_items['Mappings'].keys+@dynamic_items['Conditions'].keys+@dynamic_items['Parameters'].keys+@dynamic_items['Resources'].keys)
 
-          net = (refs.keys-names)
+          net = (_uniq_names(refs.keys+@dynamic_references['Mappings']+@dynamic_references['Parameters']+@dynamic_references['Resources'])-names)
           unless net.empty?
             @logger.error '!!! Unknown references !!!'
             net.each do |name|
@@ -126,17 +139,17 @@ module Aws
             end
             abort!
           end
-          net = (prms-refs.keys)
+          net = (prms+@dynamic_items['Parameters'].keys-refs.keys-@dynamic_references['Parameters'])
           unless net.empty?
             @logger.warn '!!! Unused Parameters !!!'
-            net.each do |name|
+            net.sort.each do |name|
               @logger.warn "  #{name}"
             end
           end
-          net = (rscs.sort-refs.keys.sort)
+          net = (rscs+@dynamic_items['Resources'].keys-refs.keys-@dynamic_references['Resources'])
           unless net.empty?
             @logger.info '!!! Unreferenced Resources !!!'
-            net.each do |name|
+            net.sort.each do |name|
               @logger.info "  #{name}"
             end
           end
