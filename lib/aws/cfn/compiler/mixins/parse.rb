@@ -119,7 +119,12 @@ module Aws
                   elsif filename =~ /\.js(|on)\z/i
                     item[section].merge! JSON.parse(content)
                   elsif filename =~ /\.ya?ml\z/i
-                    item[section].merge! YAML.load(content)
+                    begin
+                      item[section].merge! YAML.load(content)
+                    rescue => e
+                      logger.fatal "YAML error: #{e.message}"
+                      raise e
+                    end
                   else
                     next
                   end

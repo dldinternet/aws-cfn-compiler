@@ -266,21 +266,21 @@ module Aws
           end
         end
 
-        def find_conditions(hash)
+        def find_conditions(hash,level=0)
           if hash.is_a? Hash
             hash.keys.collect do |key|
-              if 'Condition' == key
+              if 'Condition' == key and level <= 4
                 if hash[key].is_a?(Array)
                   hash[key].first
                 else
                   hash[key]
                 end
               else
-                find_conditions(hash[key])
+                find_conditions(hash[key],level+1)
               end
             end.flatten.compact.uniq
           elsif hash.is_a? Array
-            hash.collect{|a| find_conditions(a)}.flatten.compact.uniq
+            hash.collect{|a| find_conditions(a,level+1)}.flatten.compact.uniq
           end
         end
 
