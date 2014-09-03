@@ -8,8 +8,40 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="jdk" jdkName="RVM: ruby-1.9.3-p547 [aws-cfn-compile]" jdkType="RUBY_SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="aws-cfn-dsl" />
-    <orderEntry type="module" module-name="cloudformation-ruby-dsl" />
+    <orderEntry type="module-library">
+      <library name="aws-cfn-dsl (v0.9.6, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/aws-cfn-dsl) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/.idea" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/.idea" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="cloudformation-ruby-dsl (v[path], /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/cloudformation-ruby-dsl) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/bin" />
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/lib" />
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/.idea" />
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/vendor" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/bin" />
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/lib" />
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/.idea" />
+          <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/vendor" />
+        </SOURCES>
+      </library>
+    </orderEntry>
     <orderEntry type="module-library">
       <library name="dldinternet-mixlib-cli (v0.2.0, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/dldinternet-mixlib-cli) [path][gem]">
         <CLASSES>
