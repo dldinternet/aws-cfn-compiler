@@ -22,6 +22,7 @@ module Aws
           @all_sections.each do |section|
             @dynamic_items[section]      ||= {}
             @dynamic_references[section] ||= []
+            @dynamic_reference_locations ||= {}
           end
         end
 
@@ -33,6 +34,14 @@ module Aws
         def dynamic_reference(section,resource)
           abort! "Invalid section '#{section}'\nValid sections are: #{@all_sections.join(',')}" unless @all_sections.include?(section)
           @dynamic_references[section] << resource
+          @dynamic_reference_locations[resource] ||= {}
+          caller_rgxp = %r/([-\.\/\(\)\w]+):(\d+)(?::in `(\w+)')?/o
+          stack = caller()[0]
+          match = caller_rgxp.match(stack)
+          f = File.basename(match[1])
+          l = Integer(match[2])
+          # m = match[3] unless match[3].nil?
+          @dynamic_reference_locations[resource][section] = [f,l]
         end
 
         def _uniq_names(arr)
@@ -135,7 +144,11 @@ module Aws
           unless net.empty?
             @logger.error '!!! Unknown references !!!'
             net.each do |name|
-              @logger.error "  #{name} from #{refs[name][0]}:#{refs[name][1]}"
+              if refs.include?(name)
+                @logger.error "  #{name} from #{refs[name][0]}:#{refs[name][1]}"
+              else
+                @logger.error "  #{name} from #{@dynamic_reference_locations[name].map{ |s,a| "#{s}:#{a[0]} line #{a[1]}" }.join(',')}"
+              end
             end
             abort!
           end
