@@ -33,14 +33,18 @@ module Aws
 
         def dynamic_reference(section,resource)
           abort! "Invalid section '#{section}'\nValid sections are: #{@all_sections.join(',')}" unless @all_sections.include?(section)
-          @dynamic_references[section] << resource
-          @dynamic_reference_locations[resource] ||= {}
+
           caller_rgxp = %r/([-\.\/\(\)\w]+):(\d+)(?::in `(\w+)')?/o
           stack = caller()[0]
           match = caller_rgxp.match(stack)
           f = File.basename(match[1])
           l = Integer(match[2])
           # m = match[3] unless match[3].nil?
+
+          # logger.warn("Referenced resource '#{resource}' does not (yet) exist in the section '#{section}' (From #{f} line #{l})") unless (@items.has_key?(section) and @items[section].has_key?(resource))
+          #
+          @dynamic_references[section] << resource
+          @dynamic_reference_locations[resource] ||= {}
           @dynamic_reference_locations[resource][section] = [f,l]
         end
 
