@@ -67,6 +67,19 @@ module Aws
                 unless %w(String Number CommaDelimitedList).include?(hash['Type'])
                   abort! "Parameter #{name} has an invalid type: #{hash['Type']}"
                 end
+                if hash.has_key?('Default')
+                  @logger.debug "#{name} is a #{hash['Type']} and 'Default' is #{hash['Default']}"
+                  case hash['Type']
+                    when /String/
+                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}" unless hash['Default'].is_a?(String)
+                    when /Number/
+                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}" unless (hash['Default'].is_a?(Numeric))
+                    when /CommaDelimetedList/
+                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}" unless (hash['Default'].is_a?(Array))
+                    else
+                      abort! "Parameter #{name} has an invalid type: #{hash['Type']}"
+                  end
+                end
               end
               if hash['Default']
                 unless hash['Default'].is_a?(String)
