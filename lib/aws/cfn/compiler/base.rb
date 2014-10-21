@@ -71,11 +71,11 @@ module Aws
                   @logger.debug "#{name} is a #{hash['Type']} and 'Default' is #{hash['Default']}"
                   case hash['Type']
                     when /String/
-                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}" unless hash['Default'].is_a?(String)
+                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}(#{hash['Default'].class})" unless hash['Default'].is_a?(String)
                     when /Number/
-                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}" unless (hash['Default'].is_a?(Numeric))
-                    when /CommaDelimetedList/
-                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}" unless (hash['Default'].is_a?(Array))
+                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}(#{hash['Default'].class})" unless (hash['Default'].is_a?(Numeric) or hash['Default'].is_a?(String))
+                    when /CommaDelimitedList/
+                      abort! "Parameter #{name} has an invalid Default: #{hash['Default']}(#{hash['Default'].class})" unless (hash['Default'].is_a?(Array) or (hash['Default'].is_a?(String) and hash['Default'].split(%r'\s*,\s*').size > 0))
                     else
                       abort! "Parameter #{name} has an invalid type: #{hash['Type']}"
                   end
