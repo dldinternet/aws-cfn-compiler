@@ -8,14 +8,12 @@ module Aws
 
           setup_options
 
-          @opts.on :b, :brick_path=,    'A list of paths to template components (bricks). May also set as the BRICK_PATH environment variable.', as: String
-          @opts.on :S, :stack_path=,    'A list of paths to stacks. May also set as the STACK_PATH environment variable.', as: String
+          @opts.on :b, :brick_path=,    'A list of paths to template components (bricks). May also set as the BRICK_PATH environment variable.', { as: String, default: 'bricks' }
+          @opts.on :S, :stack_path=,    'A list of paths to stacks. May also set as the STACK_PATH environment variable.', { as: String, default: '.' }
           @opts.on :F, :format=,        'The output format of the components. [JSON|YAML|Ruby]', { as: String, match: @format_regex, default: 'yaml' }
-          @opts.on :s, :specification=, 'The specification to use when selecting components. A JSON or YAML file', { as: String
-          }
+          @opts.on :s, :specification=, 'The specification to use when selecting components. A JSON or YAML file', { as: String }
           @opts.on :f, :formatversion=, 'The AWS Template format version. ', {as: String,
-                                                                              default: '2010-09-09'
-          }
+                                                                              default: '2010-09-09' }
           @opts.on :D, :description=,    'The AWS Template description. Default: template name', { as: String }
           @opts.on :p, :parametersfile=, 'The parameters file for the template', { as: String }
           @opts.on :i, :stackinifile=,   'The INI file for the stack builder == build.py', { as: String }
