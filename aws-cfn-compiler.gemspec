@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'awesome_print', '~> 1.2', '>= 1.2.0'
   spec.add_dependency 'psych'
   spec.add_dependency 'json'
-  spec.add_dependency 'slop'
+  spec.add_dependency 'slop', '~> 3.0'
   spec.add_dependency 'inifile'
   spec.add_dependency 'semverse', '>= 1.1.0'
   spec.add_dependency 'aws-cfn-dsl', '>= 0.9.6'
