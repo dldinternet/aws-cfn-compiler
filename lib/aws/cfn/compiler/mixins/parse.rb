@@ -122,7 +122,7 @@ module Aws
                     begin
                       item[section].merge! YAML.load(content) # item[section].merge! YAML.safe_load(content) #
                     rescue => e
-                      logger.fatal "YAML error: #{e.message}"
+                      logger.fatal "YAML error: #{e.message} in #{section}::#{rsrc}"
                       raise e
                     end
                   else
@@ -139,7 +139,7 @@ module Aws
                     abort!
                   end
                 rescue
-                  abort! "  !! error: #{$!}"
+                  abort! "  !! error: #{$!} in #{section}::#{rsrc}"
                 end
                 item.each { |sect,hash|
                   hash.keys.each do |key|

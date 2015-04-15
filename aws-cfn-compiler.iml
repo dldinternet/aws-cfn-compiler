@@ -7,6 +7,23 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="aws-cfn-dsl" />
     <orderEntry type="module-library">
+      <library name="aws-cfn-dsl (v0.9.7, /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/aws-cfn-dsl) [path][gem]">
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/.idea" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/bin" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/lib" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/pkg" />
+          <root url="file://$MODULE_DIR$/../aws-cfn-dsl/.idea" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
       <library name="cloudformation-ruby-dsl (v[path], /Users/cdelange/Dropbox/DLDInternet/ws/gems-ws/cloudformation-ruby-dsl) [path][gem]">
         <CLASSES>
           <root url="file://$MODULE_DIR$/../cloudformation-ruby-dsl/bin" />
@@ -58,6 +75,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" scope="PROVIDED" name="awesome_print (v1.2.0, RVM: ruby-1.9.3-p551 [aws-cfn-compile]) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="bundler (v1.7.9, RVM: ruby-1.9.3-p551 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="detabulator (v0.1.0, RVM: ruby-1.9.3-p551 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="inifile (v3.0.0, RVM: ruby-1.9.3-p551 [aws-cfn-compile]) [gem]" level="application" />
     <orderEntry type="library" scope="PROVIDED" name="json (v1.8.1, RVM: ruby-1.9.3-p551 [aws-cfn-compile]) [gem]" level="application" />
